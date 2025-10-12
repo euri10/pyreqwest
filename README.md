@@ -1,9 +1,5 @@
 <p align="center">
-    <img width="250" alt="logo2" src="https://github.com/user-attachments/assets/d93f91bd-5f2e-4fbc-80be-1b3344433853" />
-</p>
-
-<p align="center">
-    <em>Python HTTP client fully in Rust</em>
+    <img width="250" alt="logo" src="https://github.com/MarkusSintonen/pyreqwest/blob/main/docs/logo.png?raw=true" />
 </p>
 
 ---
@@ -12,14 +8,14 @@ pyreqwest - Powerful and fast Rust based HTTP client. Built on top of and inspir
 
 ## Why
 
-- No reinvention of the wheel - built on top of battle-tested reqwest and other Rust HTTP crates
-- Secure and fast - no C-extension code, no Python code or dependencies, no `unsafe` code
+- No reinvention of the wheel - built on top of widely used reqwest and other Rust HTTP crates
+- Secure and fast - no C-extension code, no Python code/dependencies, no `unsafe` code
 - Ergonomic and easy to use - similar API as in reqwest, fully type-annotated
-- Testing ergonomics - mocking included, ability to connect into ASGI apps
+- Testing ergonomics - mocking included, can also connect into ASGI apps
 
 Using this is a good choice when:
 
-- You care about throughput and latency
+- You care about throughput and latency, especially in high concurrency scenarios
 - You want a single solution to serve all your HTTP client needs
 
 This is not a good choice when:
@@ -29,7 +25,7 @@ This is not a good choice when:
 
 ## Feature-rich
 
-- High performance
+- High performance, see [notes](https://github.com/MarkusSintonen/pyreqwest/blob/main/docs/performance.md) and [benchmarks](https://github.com/MarkusSintonen/pyreqwest/blob/main/docs/benchmarks.md)
 - Asynchronous and synchronous HTTP clients
 - Customizable via middlewares and custom JSON serializers
 - Ergonomic as `reqwest`
@@ -37,7 +33,7 @@ This is not a good choice when:
 - Mocking and testing utilities (can also connect to ASGI apps)
 - Fully type-safe with Python type hints
 - Full test coverage
-- Free threading
+- Free threading, see [notes](https://github.com/MarkusSintonen/pyreqwest/blob/main/docs/performance.md#python-313-free-threading)
 
 ### Standard HTTP features you would expect
 

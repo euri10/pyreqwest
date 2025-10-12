@@ -148,14 +148,16 @@ impl BaseRequestBuilder {
     }
 
     fn multipart<'py>(slf: PyRefMut<'py, Self>, multipart: Bound<'_, FormBuilder>) -> PyResult<PyRefMut<'py, Self>> {
-        let mut multipart = multipart.try_borrow_mut()?;
-        if slf.is_blocking && multipart.is_async() {
-            return Err(BuilderError::from_causes(
-                "Can not use async multipart (stream) in a blocking request",
-                vec![],
-            ));
-        }
-        let multipart = multipart.build()?;
+        let multipart = {
+            let mut multipart = multipart.try_borrow_mut()?;
+            if slf.is_blocking && multipart.is_async() {
+                return Err(BuilderError::from_causes(
+                    "Can not use async multipart (stream) in a blocking request",
+                    vec![],
+                ));
+            }
+            multipart.build()?
+        };
         Self::apply(slf, |builder| Ok(builder.multipart(multipart)))
     }
 

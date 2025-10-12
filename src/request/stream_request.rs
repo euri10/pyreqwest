@@ -16,7 +16,7 @@ pub struct SyncStreamRequest(Option<Py<SyncResponse>>);
 #[pymethods]
 impl StreamRequest {
     async fn __aenter__(slf: Py<Self>, #[pyo3(cancel_handle)] cancel: CancelHandle) -> PyResult<Py<Response>> {
-        let resp = AllowThreads(Request::send_inner(slf.as_any(), cancel)).await?;
+        let resp = Request::send_inner(slf.as_any(), cancel).await?;
 
         Python::attach(|py| -> PyResult<_> {
             let response = Response::new_py(py, resp)?;
@@ -80,7 +80,7 @@ impl StreamRequest {
 #[pymethods]
 impl SyncStreamRequest {
     fn __enter__(slf: Bound<Self>) -> PyResult<Py<SyncResponse>> {
-        let resp = Request::blocking_send_inner(slf.as_unbound().as_any())?;
+        let resp = Request::blocking_send_inner(slf.as_super())?;
 
         let response = SyncResponse::new_py(slf.py(), resp)?;
         slf.try_borrow_mut()?.0 = Some(response.clone_ref(slf.py()));
@@ -94,15 +94,17 @@ impl SyncStreamRequest {
         _traceback: Py<PyAny>,
         py: Python,
     ) -> PyResult<()> {
-        let mut resp = self
-            .0
-            .take()
-            .ok_or_else(|| PyRuntimeError::new_err("Must be used as a context manager"))?
-            .into_bound(py)
-            .into_super()
-            .try_borrow_mut()?;
-        let body = resp.take_body_reader()?;
-        SyncResponse::runtime(&resp)?.blocking_spawn(body.close());
+        let (rt, body) = {
+            let mut resp = self
+                .0
+                .take()
+                .ok_or_else(|| PyRuntimeError::new_err("Must be used as a context manager"))?
+                .into_bound(py)
+                .into_super()
+                .try_borrow_mut()?;
+            (SyncResponse::runtime(&resp)?, resp.take_body_reader()?)
+        };
+        rt.blocking_spawn(py, body.close());
         Ok(())
     }
 

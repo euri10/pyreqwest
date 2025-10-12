@@ -1,4 +1,4 @@
-use crate::asyncio::{PyCoroWaiter, TaskLocal, py_coro_waiter};
+use crate::asyncio::{OnceTaskLocal, PyCoroWaiter, TaskLocal, py_coro_waiter};
 use futures_util::{FutureExt, Stream};
 use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
@@ -86,9 +86,9 @@ impl BodyStream {
         Ok(reqwest::Body::wrap_stream(self))
     }
 
-    pub fn set_task_local(&mut self, py: Python) -> PyResult<()> {
+    pub fn set_task_local(&mut self, py: Python, task_local: &OnceTaskLocal) -> PyResult<()> {
         if self.is_async && self.task_local.is_none() {
-            self.task_local = Some(TaskLocal::current(py)?);
+            self.task_local = Some(task_local.get_or_current(py)?);
         }
         Ok(())
     }

@@ -1,4 +1,5 @@
 use crate::allow_threads::AllowThreads;
+use crate::asyncio::OnceTaskLocal;
 use crate::client::RuntimeHandle;
 use crate::http::{HeaderMap, MimeType};
 use crate::internal::body_stream::BodyStream;
@@ -28,16 +29,18 @@ impl PartBuilder {
     #[staticmethod]
     fn from_stream(py: Python, stream: Bound<PyAny>) -> PyResult<Self> {
         let mut stream = BodyStream::new(stream)?;
-        stream.set_task_local(py)?;
+        stream.set_task_local(py, &OnceTaskLocal::new())?;
         let is_async = stream.is_async();
+
         py.detach(|| Ok(Self::new(reqwest::multipart::Part::stream(stream.into_reqwest(false)?), is_async)))
     }
 
     #[staticmethod]
     fn from_stream_with_length(py: Python, stream: Bound<PyAny>, length: u64) -> PyResult<Self> {
         let mut stream = BodyStream::new(stream)?;
-        stream.set_task_local(py)?;
+        stream.set_task_local(py, &OnceTaskLocal::new())?;
         let is_async = stream.is_async();
+
         py.detach(|| {
             Ok(Self::new(
                 reqwest::multipart::Part::stream_with_length(stream.into_reqwest(false)?, length),
@@ -54,8 +57,8 @@ impl PartBuilder {
     }
 
     #[staticmethod]
-    fn from_sync_file(path: PathBuf) -> PyResult<Self> {
-        let part = RuntimeHandle::global_handle()?.blocking_spawn(reqwest::multipart::Part::file(path))?;
+    fn from_sync_file(py: Python, path: PathBuf) -> PyResult<Self> {
+        let part = RuntimeHandle::global_handle()?.blocking_spawn(py, reqwest::multipart::Part::file(path))?;
         Ok(Self::new(part, false))
     }
 

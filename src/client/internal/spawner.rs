@@ -71,9 +71,9 @@ impl Spawner {
         Self::spawn_reqwest_inner(request, cancel).await
     }
 
-    pub fn blocking_spawn_reqwest(request: RequestData) -> PyResult<BaseResponse> {
+    pub fn blocking_spawn_reqwest(py: Python, request: RequestData) -> PyResult<BaseResponse> {
         let rt = &request.spawner.runtime.clone();
-        rt.blocking_spawn(Self::spawn_reqwest_inner(request, CancelHandle::new()))
+        rt.blocking_spawn(py, Self::spawn_reqwest_inner(request, CancelHandle::new()))
     }
 
     async fn limit_connections(

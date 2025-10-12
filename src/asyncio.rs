@@ -272,3 +272,30 @@ impl TaskLocal {
         self.context = None;
     } // :NOCOV_END
 }
+
+pub struct OnceTaskLocal(PyOnceLock<TaskLocal>);
+impl Default for OnceTaskLocal {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl OnceTaskLocal {
+    pub const fn new() -> Self {
+        OnceTaskLocal(PyOnceLock::new())
+    }
+
+    pub fn get_or_current(&self, py: Python) -> PyResult<TaskLocal> {
+        self.0.get_or_try_init(py, || TaskLocal::current(py))?.clone_ref(py)
+    }
+
+    pub fn clone_ref(&self, py: Python) -> PyResult<Self> {
+        let slf = Self::new();
+        if let Some(task_local) = self.0.get(py) {
+            slf.0
+                .set(py, task_local.clone_ref(py)?)
+                .map_err(|_| PyRuntimeError::new_err("Expected unset PyOnceLock"))?;
+        }
+        Ok(slf)
+    }
+}

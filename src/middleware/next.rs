@@ -36,11 +36,8 @@ impl Next {
     } // :NOCOV_END
 }
 impl Next {
-    pub fn new(inner: NextInner, py: Python) -> PyResult<Self> {
-        Ok(Next {
-            inner,
-            task_local: TaskLocal::current(py)?,
-        })
+    pub fn new(inner: NextInner, task_local: TaskLocal) -> PyResult<Self> {
+        Ok(Next { inner, task_local })
     }
 
     pub async fn run_inner(&self, request: &Py<PyAny>, cancel: CancelHandle) -> PyResult<BaseResponse> {
@@ -56,7 +53,7 @@ impl Next {
             })
         } else {
             // No more middleware, execute the request
-            AllowThreads(Request::spawn_request(request, cancel)).await
+            Request::spawn_request(request, cancel).await
         }
     }
 
@@ -100,27 +97,22 @@ impl SyncNext {
     }
 
     pub fn run_inner(&self, request: &Bound<PyAny>) -> PyResult<BaseResponse> {
-        let resp = self.call_next(request)?;
-
-        if let Some(resp) = resp {
+        if let Some(middleware) = self.0.current_middleware()? {
+            let resp = self.call_next(middleware, request)?;
             resp.downcast_into_exact::<SyncResponse>()?
                 .into_super()
                 .try_borrow_mut()?
                 .take_inner()
         } else {
             // No more middleware, execute the request
-            Request::blocking_spawn_request(&request.clone().unbind())
+            Request::blocking_spawn_request(request.downcast::<Request>()?)
         }
     }
 
-    fn call_next<'py>(&self, request: &Bound<'py, PyAny>) -> PyResult<Option<Bound<'py, PyAny>>> {
-        let Some(middleware) = self.0.current_middleware()? else {
-            return Ok(None); // No more middlewares
-        };
-
+    fn call_next<'py>(&self, middleware: &Py<PyAny>, request: &Bound<'py, PyAny>) -> PyResult<Bound<'py, PyAny>> {
         let py = request.py();
         let next = SyncNext(self.0.create_next(py)?);
-        middleware.bind(py).call1((request, next)).map(Some)
+        middleware.bind(py).call1((request, next))
     }
 }
 

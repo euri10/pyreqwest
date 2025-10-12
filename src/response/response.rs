@@ -378,15 +378,16 @@ impl SyncResponse {
             .cast_into::<SyncResponseBodyReader>()?)
     }
 
-    fn bytes(slf: PyRefMut<Self>) -> PyResult<PyBytes> {
-        Self::runtime(slf.as_ref())?.blocking_spawn(slf.into_super().bytes(CancelHandle::new()))
+    fn bytes(slf: PyRefMut<Self>, py: Python) -> PyResult<PyBytes> {
+        Self::runtime(slf.as_ref())?.blocking_spawn(py, slf.into_super().bytes(CancelHandle::new()))
     }
 
     fn json(mut slf: PyRefMut<Self>, py: Python) -> PyResult<Py<PyAny>> {
         let json_handler = match slf.as_super().ref_inner()?.json_handler.as_ref() {
             Some(h) if h.has_loads() => h.clone_ref(py),
             _ => {
-                return Self::runtime(slf.as_ref())?.blocking_spawn(slf.into_super().json_inner(CancelHandle::new()));
+                return Self::runtime(slf.as_ref())?
+                    .blocking_spawn(py, slf.into_super().json_inner(CancelHandle::new()));
             }
         };
         let ctx = JsonLoadsContext {
@@ -399,8 +400,8 @@ impl SyncResponse {
         Ok(json_handler.call_loads(py, ctx)?.unbind())
     }
 
-    fn text(slf: PyRefMut<Self>) -> PyResult<String> {
-        Self::runtime(slf.as_ref())?.blocking_spawn(slf.into_super().text(CancelHandle::new()))
+    fn text(slf: PyRefMut<Self>, py: Python) -> PyResult<String> {
+        Self::runtime(slf.as_ref())?.blocking_spawn(py, slf.into_super().text(CancelHandle::new()))
     }
 }
 impl SyncResponse {

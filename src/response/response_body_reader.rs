@@ -68,17 +68,17 @@ impl ResponseBodyReader {
 
 #[pymethods]
 impl SyncResponseBodyReader {
-    fn bytes(slf: PyRef<Self>) -> PyResult<PyBytes> {
-        Self::runtime(slf.as_ref()).blocking_spawn(slf.as_super().bytes(CancelHandle::new()))
+    fn bytes(slf: PyRef<Self>, py: Python) -> PyResult<PyBytes> {
+        Self::runtime(slf.as_ref()).blocking_spawn(py, slf.as_super().bytes(CancelHandle::new()))
     }
 
     #[pyo3(signature = (amount=DEFAULT_READ_BUFFER_LIMIT))]
-    fn read(slf: PyRef<Self>, amount: usize) -> PyResult<Option<PyBytes>> {
-        Self::runtime(slf.as_ref()).blocking_spawn(slf.as_super().read(amount, CancelHandle::new()))
+    fn read(slf: PyRef<Self>, py: Python, amount: usize) -> PyResult<Option<PyBytes>> {
+        Self::runtime(slf.as_ref()).blocking_spawn(py, slf.as_super().read(amount, CancelHandle::new()))
     }
 
-    fn read_chunk(slf: PyRef<Self>) -> PyResult<Option<PyBytes>> {
-        Self::runtime(slf.as_ref()).blocking_spawn(slf.as_super().read_chunk(CancelHandle::new()))
+    fn read_chunk(slf: PyRef<Self>, py: Python) -> PyResult<Option<PyBytes>> {
+        Self::runtime(slf.as_ref()).blocking_spawn(py, slf.as_super().read_chunk(CancelHandle::new()))
     }
 }
 impl SyncResponseBodyReader {

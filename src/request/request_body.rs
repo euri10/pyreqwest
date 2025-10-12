@@ -1,3 +1,4 @@
+use crate::asyncio::OnceTaskLocal;
 use crate::internal::body_stream::BodyStream;
 use bytes::Bytes;
 use pyo3::exceptions::PyRuntimeError;
@@ -93,10 +94,10 @@ impl RequestBody {
         ))
     }
 
-    pub fn set_task_local(&self, py: Python) -> PyResult<()> {
+    pub fn set_task_local(&self, py: Python, task_local: &OnceTaskLocal) -> PyResult<()> {
         match self.lock(py)?.as_mut() {
             Some(InnerBody::Bytes(_)) => Ok(()),
-            Some(InnerBody::Stream(stream)) => stream.set_task_local(py),
+            Some(InnerBody::Stream(stream)) => stream.set_task_local(py, task_local),
             None => Err(PyRuntimeError::new_err("Request body already consumed")),
         }
     }

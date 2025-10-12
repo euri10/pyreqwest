@@ -2,19 +2,18 @@ use crate::internal::types::QueryParams;
 use pyo3::basic::CompareOp;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
-use pyo3::sync::OnceLockExt;
+use pyo3::sync::PyOnceLock;
 use pyo3::types::{PyDict, PyIterator, PyList, PyString};
 use pyo3::{IntoPyObjectExt, intern};
 use serde::Serialize;
 use std::hash::{DefaultHasher, Hash, Hasher};
 use std::net::IpAddr;
 use std::str::FromStr;
-use std::sync::OnceLock;
 
 #[pyclass(frozen)]
 pub struct Url {
     url: url::Url,
-    query: OnceLock<Vec<(Py<PyString>, Py<PyString>)>>,
+    query: PyOnceLock<Vec<(Py<PyString>, Py<PyString>)>>,
 }
 
 #[pymethods]
@@ -312,7 +311,7 @@ impl Url {
     fn new(url: url::Url) -> Self {
         Url {
             url,
-            query: OnceLock::new(),
+            query: PyOnceLock::new(),
         }
     }
 
@@ -321,7 +320,7 @@ impl Url {
     }
 
     fn query_pairs_vec(&self, py: Python) -> &Vec<(Py<PyString>, Py<PyString>)> {
-        self.query.get_or_init_py_attached(py, || {
+        self.query.get_or_init(py, || {
             self.url
                 .query_pairs()
                 .map(|(k, v)| {
@@ -379,7 +378,7 @@ pub struct UrlType(pub url::Url);
 impl<'py> FromPyObject<'py> for UrlType {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         if let Ok(url) = ob.downcast_exact::<Url>() {
-            return Ok(UrlType(url.borrow().url.clone()));
+            return Ok(UrlType(url.try_borrow()?.url.clone()));
         }
         if let Ok(str) = ob.extract::<&str>() {
             return Ok(UrlType(Url::parse_inner(str)?));

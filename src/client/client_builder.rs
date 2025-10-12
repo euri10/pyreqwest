@@ -116,7 +116,7 @@ impl BaseClientBuilder {
     }
 
     fn proxy<'py>(slf: PyRefMut<'py, Self>, proxy: Bound<'_, ProxyBuilder>) -> PyResult<PyRefMut<'py, Self>> {
-        let proxy = proxy.borrow_mut().build()?;
+        let proxy = proxy.try_borrow_mut()?.build()?;
         Self::apply(slf, |builder| Ok(builder.proxy(proxy)))
     }
 

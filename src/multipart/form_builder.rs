@@ -45,7 +45,7 @@ impl FormBuilder {
     }
 
     fn sync_file(slf: PyRefMut<Self>, name: String, path: PathBuf) -> PyResult<PyRefMut<Self>> {
-        let part = RuntimeHandle::global_handle()?.blocking_spawn(reqwest::multipart::Part::file(path))?;
+        let part = RuntimeHandle::global_handle()?.blocking_spawn(slf.py(), reqwest::multipart::Part::file(path))?;
         Self::apply(slf, |builder| Ok(builder.part(name, part)))
     }
 

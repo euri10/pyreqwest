@@ -39,12 +39,12 @@ impl RuntimeHandle {
         }
     }
 
-    pub fn blocking_spawn<F, T>(&self, future: F) -> T
+    pub fn blocking_spawn<F, T>(&self, py: Python, future: F) -> T
     where
         F: Future<Output = T> + Send,
         T: Send,
     {
-        Python::attach(|py| py.detach(|| self.0.block_on(future)))
+        py.detach(|| self.0.block_on(future))
     }
 
     pub fn global_handle() -> PyResult<&'static Self> {

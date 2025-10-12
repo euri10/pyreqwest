@@ -1,4 +1,5 @@
 use crate::allow_threads::AllowThreads;
+use crate::asyncio::OnceTaskLocal;
 use crate::client::RuntimeHandle;
 use crate::http::HeaderMap;
 use crate::internal::types::{Extensions, HeaderName, HeaderValue, JsonValue, StatusCode, Version};
@@ -98,7 +99,7 @@ impl ResponseBuilder {
         let config = BodyConsumeConfig::Streamed(StreamedReadConfig::default());
         let runtime = RuntimeHandle::global_handle()?;
         let resp =
-            runtime.blocking_spawn(BaseResponse::initialize(inner, None, config, runtime.clone(), None, false))?;
+            runtime.blocking_spawn(py, BaseResponse::initialize(inner, None, config, runtime.clone(), None, false))?;
 
         Python::attach(|py| SyncResponse::new_py(py, resp))
     }
@@ -158,7 +159,7 @@ impl ResponseBuilder {
             .body
             .take()
             .map(|b| {
-                b.set_task_local(py)?;
+                b.set_task_local(py, &OnceTaskLocal::new())?;
                 b.into_reqwest(py, is_blocking)
             })
             .transpose()?
