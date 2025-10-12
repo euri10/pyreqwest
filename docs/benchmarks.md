@@ -1,19 +1,19 @@
 ### Compared to urllib3 (sync)
 
 <p align="center">
-    <img width="1200" alt="urllib3" src="https://github.com/MarkusSintonen/pyreqwest/blob/main/tests/bench/benchmark_urllib3.png?raw=true" />
+    <img width="1200" alt="urllib3" src="https://raw.githubusercontent.com/MarkusSintonen/pyreqwest/refs/heads/main/tests/bench/benchmark_urllib3.png" />
 </p>
 
 ### Compared to aiohttp (async)
 
 <p align="center">
-    <img width="1200" alt="aiohttp" src="https://github.com/MarkusSintonen/pyreqwest/blob/main/tests/bench/benchmark_aiohttp.png?raw=true" />
+    <img width="1200" alt="aiohttp" src="https://raw.githubusercontent.com/MarkusSintonen/pyreqwest/refs/heads/main/tests/bench/benchmark_aiohttp.png" />
 </p>
 
 ### Compared to httpx (async)
 
 <p align="center">
-    <img width="1200" alt="httpx" src="https://github.com/MarkusSintonen/pyreqwest/blob/main/tests/bench/benchmark_httpx.png?raw=true" />
+    <img width="1200" alt="httpx" src="https://raw.githubusercontent.com/MarkusSintonen/pyreqwest/refs/heads/main/tests/bench/benchmark_httpx.png" />
 </p>
 
 ---

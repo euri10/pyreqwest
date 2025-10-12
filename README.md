@@ -1,5 +1,5 @@
 <p align="center">
-    <img width="250" alt="logo" src="https://github.com/MarkusSintonen/pyreqwest/blob/main/docs/logo.png?raw=true" />
+    <img width="250" alt="logo" src="https://raw.githubusercontent.com/MarkusSintonen/pyreqwest/refs/heads/main/docs/logo.png" />
 </p>
 
 ---
