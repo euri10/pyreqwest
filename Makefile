@@ -35,7 +35,12 @@ check: static-checks test
 .PHONY: bench
 bench:
 	uv run maturin develop --uv --release
-	uv run python -m tests.bench.benchmark_performance --lib $(lib)
+	uv run python -m tests.bench.benchmark_latency --lib $(lib)
+
+.PHONY: bench-gc
+bench-mem:
+	uv run maturin develop --uv --release
+	uv run python -m tests.bench.benchmark_gc --lib $(lib)
 
 .PHONY: clean
 clean:

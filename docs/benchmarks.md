@@ -1,3 +1,5 @@
+## Latency
+
 ### Compared to urllib3 (sync)
 
 <p align="center">
@@ -18,12 +20,27 @@
 
 ---
 
-### Benchmark
+## GC pressure
+
+| Library (mode)      | Total Collections | Total Collected |
+|---------------------|-------------------|-----------------|
+| pyreqwest (async)   | 4                 | 6               |
+| pyreqwest (sync)    | 4                 | 6               |
+| urllib3 (sync)      | 9                 | 19              |
+| aiohttp (async)     | 67                | 1,886           |
+| httpx (async)       | 578               | 1,588,717       |
+
+---
+
+## Benchmark
 
 ```bash
 make bench lib=urllib3
 make bench lib=aiohttp
 make bench lib=httpx
+make bench-gc lib=urllib3
+make bench-gc lib=aiohttp
+make bench-gc lib=httpx
 ```
 Benchmarks run against (concurrency limited) embedded server to minimize any network effects on latency measurements.
 These were run on Apple M3 Max machine with 36GB RAM (OS 15.6.1).

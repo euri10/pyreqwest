@@ -20,7 +20,7 @@ from tests.servers.echo_server import EchoServer
 from tests.servers.server import EmbeddedServer, ServerConfig, find_free_port
 
 
-class PerformanceBenchmark:
+class PerformanceLatency:
     """Benchmark class for comparing HTTP client performance."""
 
     def __init__(self, server_url: Url, comparison_lib: str, trust_cert_der: bytes) -> None:
@@ -227,19 +227,14 @@ class PerformanceBenchmark:
         print("Starting performance benchmarks...")
         print(f"Comparing pyreqwest vs {self.comparison_lib}")
         print(f"Echo server URL: {self.url}")
-        print(
-            f"Body sizes: {
-                [f'{size // 1000}KB' if size < 1_000_000 else f'{size // 1_000_000}MB' for size in self.body_sizes]
-            }"
-        )
+        print(f"Body sizes: {[self.fmt_size(size) for size in self.body_sizes]}")
         print(f"Concurrency levels: {self.concurrency_levels}")
         print(f"Warmup iterations: {self.warmup_iterations}")
         print(f"Benchmark iterations: {self.iterations}")
         print()
 
         for body_size in self.body_sizes:
-            size_label = f"{body_size // 1000}KB" if body_size < 1_000_000 else f"{body_size // 1_000_000}MB"
-            print(f"Benchmarking {size_label} body size...")
+            print(f"Benchmarking {self.fmt_size(body_size)} body size...")
 
             # Initialize nested dictionaries for this body size
             self.results["pyreqwest"][body_size] = {}
@@ -268,6 +263,9 @@ class PerformanceBenchmark:
                 print(f"    Speedup: {speedup:.2f}x")
                 print()
 
+    def fmt_size(self, size: int) -> str:
+        return f"{size // 1000}KB" if size < 1_000_000 else f"{size // 1_000_000}MB"
+
     def create_plot(self) -> None:
         """Create performance comparison plots."""
         # Create a grid layout - 4 rows * 3 columns for 12 subplots
@@ -276,7 +274,6 @@ class PerformanceBenchmark:
         legend_colors = {"pyreqwest": "lightblue", self.comparison_lib: "lightcoral"}
 
         for i, body_size in enumerate(self.body_sizes):
-            size_label = f"{body_size // 1000}KB" if body_size < 1_000_000 else f"{body_size // 1_000_000}MB"
             ymax = 0.0
 
             for j, concurrency in enumerate(self.concurrency_levels):
@@ -303,7 +300,7 @@ class PerformanceBenchmark:
                     patch.set_facecolor(color)
 
                 # Customize subplot
-                ax.set_title(f"{size_label} @ {concurrency} concurrent", fontweight="bold", pad=10)
+                ax.set_title(f"{self.fmt_size(body_size)} @ {concurrency} concurrent", fontweight="bold", pad=10)
                 ax.set_ylabel("Response Time (ms)")
                 ax.grid(True, alpha=0.3)
 
@@ -395,13 +392,13 @@ async def server() -> AsyncGenerator[tuple[EmbeddedServer, bytes], None]:
 
 
 async def main() -> None:
-    parser = argparse.ArgumentParser(description="Performance benchmark")
+    parser = argparse.ArgumentParser(description="Performance latency")
     parser.add_argument("--lib", type=str, choices=["aiohttp", "httpx", "urllib3"], default="aiohttp")
 
     args = parser.parse_args()
 
     async with server() as (echo_server, trust_cert_der):
-        benchmark = PerformanceBenchmark(echo_server.url, args.lib, trust_cert_der)
+        benchmark = PerformanceLatency(echo_server.url, args.lib, trust_cert_der)
         await benchmark.run_benchmarks()
         benchmark.create_plot()
 
