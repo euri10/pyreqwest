@@ -1,20 +1,20 @@
 ### Async runtime
 
-Reqwest Rust library uses `tokio` async runtime. Therefore, `pyreqwest` also uses `tokio` runtime. Library uses by
-default a global single-threaded runtime for simplicity and performance. Which is usually sufficient for most use cases.
-However, `ClientBuilder.runtime(Runtime)` allows passing a dedicated `tokio` runtime for the client if needed.
+Reqwest uses the `tokio` async runtime, so `pyreqwest` does as well. By default, the library runs on a global
+single-threaded runtime chosen for simplicity and performance, which is sufficient for most use cases.
+If needed, you can provide a dedicated `tokio` runtime via `ClientBuilder.runtime(Runtime)`.
 
 ### Buffer protocol and zero-copying
 
 Library makes extensive use of Python buffer protocol to avoid unnecessary copying of data.
-For example, request bodies are returned as `pyreqwest.bytes.Bytes` type. This is a `bytes` like type that implements
-the buffer protocol. You can pass the data as zero-copy to other libraries and functions via `memoryview(Bytes)`.
-Converting to `bytes`/`bytearray` is also possible via `bytes(Bytes)` which copies the underlying buffer.
+For example, request bodies are returned as `pyreqwest.bytes.Bytes` type. This is a `bytes`-like type that implements
+the buffer protocol. You can pass the data to other libraries and functions without copying via `memoryview(Bytes)`.
+Converting to `bytes`/`bytearray` happens via `bytes(Bytes)` which copies the underlying buffer.
 
-Many `copy()` operations that library exposes make a zero-copy view of the underlying data. For example `Request.copy()`,
-which is required for request retrying.
+Many `copy()` operations provided by the library create a zero-copy view of the underlying data (e.g. `Request.copy()`),
+enabling efficient request retrying (when done e.g. via a middleware).
 
-To avoid copying, library usually transfers ownership of its internal data structures between different functions calls,
+Library usually transfers ownership of its internal data structures between different functions calls,
 such as those sending requests or builders. Therefore, some instance become usable after usage. For example, after
 calling `Request.send()`, the `Request` instance is no longer usable.
 
