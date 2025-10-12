@@ -9,10 +9,10 @@ from pyreqwest.request import Request
 from pyreqwest.response import Response, SyncResponse
 
 try:
-    from dirty_equals import DirtyEquals as _DirtyEquals
+    from dirty_equals import DirtyEquals
 
-    Matcher = _DirtyEquals[Any] | str | Pattern[str]
-    JsonMatcher = _DirtyEquals[Any] | Any
+    Matcher = str | Pattern[str] | DirtyEquals[Any]
+    JsonMatcher = DirtyEquals[Any] | Any
 except ImportError:
     Matcher = str | Pattern[str]  # type: ignore[misc]
     JsonMatcher = Any  # type: ignore[assignment,misc]

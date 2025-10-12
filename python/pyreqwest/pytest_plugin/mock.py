@@ -6,8 +6,6 @@ from functools import cached_property
 from re import Pattern
 from typing import Any, Literal, Self, TypeVar, assert_never
 
-import pytest
-
 from pyreqwest.middleware import Next, SyncNext
 from pyreqwest.middleware.types import Middleware, SyncMiddleware
 from pyreqwest.pytest_plugin.internal.matcher import InternalMatcher
@@ -24,6 +22,16 @@ from pyreqwest.pytest_plugin.types import (
 )
 from pyreqwest.request import BaseRequestBuilder, Request, RequestBody, RequestBuilder, SyncRequestBuilder
 from pyreqwest.response import BaseResponse, Response, ResponseBuilder, SyncResponse
+from pyreqwest.types import HeadersType
+
+try:
+    import pytest
+
+    pytest_fixture = pytest.fixture
+    MonkeyPatch = pytest.MonkeyPatch
+except ImportError:
+    pytest_fixture = None  # type: ignore[assignment]
+    MonkeyPatch = Any  # type: ignore[assignment,misc]
 
 _R = TypeVar("_R", bound=BaseResponse)
 
@@ -142,6 +150,11 @@ class Mock:
     def with_header(self, name: str, value: str) -> Self:
         """Add a header to the mocked response."""
         self._response_builder.header(name, value)
+        return self
+
+    def with_headers(self, headers: HeadersType) -> Self:
+        """Add headers to the mocked response."""
+        self._response_builder.headers(headers)
         return self
 
     def with_body_bytes(self, body: bytes | bytearray | memoryview) -> Self:
@@ -345,17 +358,17 @@ class Mock:
 
 
 class ClientMocker:
-    """Main class for mocking HTTP requests."""
+    """Main class for mocking HTTP requests.
+    Use the `client_mocker` fixture or `ClientMocker.create_mocker` to create an instance.
+    """
 
     def __init__(self) -> None:
-        """Do not initialize ClientMocker directly.
-        Instead, use the `client_mocker` fixture or `ClientMocker.create_mocker`.
-        """
+        """@private"""
         self._mocks: list[Mock] = []
         self._strict = False
 
     @staticmethod
-    def create_mocker(monkeypatch: pytest.MonkeyPatch) -> "ClientMocker":
+    def create_mocker(monkeypatch: MonkeyPatch) -> "ClientMocker":
         """Create a ClientMocker for mocking HTTP requests in tests."""
         mocker = ClientMocker()
 
@@ -472,7 +485,9 @@ class ClientMocker:
         return mock_middleware
 
 
-@pytest.fixture
-def client_mocker(monkeypatch: pytest.MonkeyPatch) -> ClientMocker:
-    """Fixture that provides a ClientMocker for mocking HTTP requests in tests."""
-    return ClientMocker.create_mocker(monkeypatch)
+if pytest_fixture is not None:
+
+    @pytest_fixture
+    def client_mocker(monkeypatch: MonkeyPatch) -> ClientMocker:
+        """Fixture that provides a ClientMocker for mocking HTTP requests in tests."""
+        return ClientMocker.create_mocker(monkeypatch)

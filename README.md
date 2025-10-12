@@ -23,7 +23,7 @@ This is not a good choice when:
 - You want a pure Python solution allowing debugging of the HTTP client internals
 - You use alternative Python implementations or Python version older than 3.11
 
-## Feature-rich
+## Features
 
 - High performance, see [notes](https://github.com/MarkusSintonen/pyreqwest/blob/main/docs/performance.md) and [benchmarks](https://github.com/MarkusSintonen/pyreqwest/blob/main/docs/benchmarks.md)
 - Asynchronous and synchronous HTTP clients

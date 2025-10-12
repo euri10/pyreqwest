@@ -33,7 +33,7 @@ Homepage = "https://github.com/MarkusSintonen/pyreqwest"
 Source = "https://github.com/MarkusSintonen/pyreqwest"
 
 [project.entry-points.pytest11]
-pyreqwest = "pyreqwest.pytest_plugin.plugin"
+pyreqwest = "pyreqwest.pytest_plugin.internal.plugin"
 
 [dependency-groups]
 dev = [

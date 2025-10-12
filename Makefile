@@ -2,11 +2,13 @@
 test:
 	uv run maturin develop --uv
 	uv run pytest
+	uv run pytest tests/pytest_mock/test_plugin_external.py
 
 .PHONY: test-release
 test-release:
 	uv run maturin develop --uv --release
 	uv run pytest
+	uv run pytest tests/pytest_mock/test_plugin_external.py
 
 .PHONY: lint
 lint:

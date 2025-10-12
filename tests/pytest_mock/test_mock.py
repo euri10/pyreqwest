@@ -176,15 +176,19 @@ async def test_call_counting(client_mocker: ClientMocker) -> None:
 
 
 async def test_response_headers(client_mocker: ClientMocker) -> None:
-    client_mocker.get(path="/test").with_body_text("Hello").with_header("X-Custom-Header", "custom-value").with_header(
-        "x-rate-limit",
-        "100",
+    client_mocker.get(path="/test").with_header("X-Custom", "val1").with_header("x-rate-limit", "100").with_body_text(
+        "Hello"
     )
-    client = ClientBuilder().build()
-    resp = await client.get("http://api.example.invalid/test").build().send()
+    client_mocker.get(path="/test2").with_headers({"x-custom": "val2", "X-Another": "val3"}).with_body_text("Hello2")
 
-    assert resp.headers["X-Custom-Header"] == "custom-value"
-    assert resp.headers["X-Rate-Limit"] == "100"
+    client = ClientBuilder().build()
+    resp1 = await client.get("http://api.example.invalid/test").build().send()
+    resp2 = await client.get("http://api.example.invalid/test2").build().send()
+
+    assert resp1.headers["X-Custom"] == "val1"
+    assert resp1.headers["X-Rate-Limit"] == "100"
+    assert resp2.headers["X-Custom"] == "val2"
+    assert resp2.headers["X-Another"] == "val3" and resp2.headers["x-another"] == "val3"
 
 
 async def test_json_response(client_mocker: ClientMocker) -> None:

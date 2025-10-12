@@ -268,7 +268,7 @@ class HeaderMap(MutableMapping[str, str]):
     """Case-insensitive multi-value HTTP header map."""
 
     def __init__(self, other: HeadersType | None = None) -> None:
-        """Init from: list/tuple of (key,value), dict (single values), HeaderMap, CIMultiDict."""
+        """Init from: Sequence of (key,value) pairs or Mapping."""
 
     def __len__(self) -> int:
         """Number of items in the map."""
