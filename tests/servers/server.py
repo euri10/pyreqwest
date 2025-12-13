@@ -130,12 +130,12 @@ async def receive_all(receive: Callable[[], Awaitable[dict[str, Any]]]) -> Async
         more_body = message.get("more_body", False)
 
 
-async def wait_for_server(url: Url, ca_pem: bytes | None, success_timeout: timedelta = timedelta(seconds=5)) -> None:
+async def wait_for_server(url: Url, ca_pem: bytes | None, success_timeout: timedelta = timedelta(seconds=10)) -> None:
     deadline = time.monotonic() + success_timeout.total_seconds()
     if url.scheme == "https":
         assert ca_pem
 
-    builder = ClientBuilder().error_for_status(True).timeout(timedelta(seconds=1))
+    builder = ClientBuilder().error_for_status(True).timeout(timedelta(seconds=3))
     if ca_pem:
         builder = builder.add_root_certificate_pem(ca_pem)
 

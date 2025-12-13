@@ -14,7 +14,7 @@ try:
     Matcher = str | Pattern[str] | DirtyEquals[Any]
     JsonMatcher = DirtyEquals[Any] | Any
 except ImportError:
-    Matcher = str | Pattern[str]  # type: ignore[misc]
+    Matcher = str | Pattern[str]  # type: ignore[assignment,misc]
     JsonMatcher = Any  # type: ignore[assignment,misc]
 
 MethodMatcher = Matcher
