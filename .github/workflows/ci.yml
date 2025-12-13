@@ -75,7 +75,7 @@ jobs:
       - run: uv sync
       - run: make test
 
-  lint:
+  static-checks:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -85,7 +85,10 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - uses: astral-sh/setup-uv@v6
 
-      - run: make static-checks
+      - name: Check Cargo.lock consistency
+        run: cargo metadata --locked --format-version 1 > /dev/null
+      - name: Static checks
+        run: make static-checks
 
   # https://github.com/marketplace/actions/alls-green#why used for branch protection checks
   check:
@@ -95,7 +98,7 @@ jobs:
         test-python,
         test-os,
         test-debug,
-        lint,
+        static-checks,
       ]
     runs-on: ubuntu-latest
     steps:
