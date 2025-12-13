@@ -32,9 +32,11 @@ impl<'py> IntoPyObject<'py> for Method {
         Ok(PyString::new(py, self.0.as_str()))
     }
 }
-impl<'py> FromPyObject<'py> for Method {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let method = ob
+impl<'py> FromPyObject<'_, 'py> for Method {
+    type Error = PyErr;
+
+    fn extract(obj: Borrowed<'_, 'py, PyAny>) -> Result<Self, Self::Error> {
+        let method = obj
             .extract::<&str>()?
             .parse::<http::Method>()
             .map_err(|e| PyValueError::new_err(e.to_string()))?;
@@ -55,9 +57,10 @@ impl<'py> IntoPyObject<'py> for HeaderName {
         Ok(PyString::new(py, self.0.as_str()))
     }
 }
-impl<'py> FromPyObject<'py> for HeaderName {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let val = ob.extract::<&str>()?;
+impl<'py> FromPyObject<'_, 'py> for HeaderName {
+    type Error = PyErr;
+    fn extract(obj: Borrowed<'_, 'py, PyAny>) -> Result<Self, Self::Error> {
+        let val = obj.extract::<&str>()?;
         let val = http::HeaderName::from_str(val).map_err(|e| PyValueError::new_err(e.to_string()))?;
         Ok(HeaderName(val))
     }
@@ -81,9 +84,10 @@ impl<'py> IntoPyObject<'py> for HeaderValue {
         Ok(PyString::new(py, &HeaderValue::inner_str(&self.0)?))
     }
 }
-impl<'py> FromPyObject<'py> for HeaderValue {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let val = ob.extract::<&str>()?;
+impl<'py> FromPyObject<'_, 'py> for HeaderValue {
+    type Error = PyErr;
+    fn extract(obj: Borrowed<'_, 'py, PyAny>) -> Result<Self, Self::Error> {
+        let val = obj.extract::<&str>()?;
         let val = http::HeaderValue::from_str(val).map_err(|e| PyValueError::new_err(e.to_string()))?;
         Ok(HeaderValue(val))
     }
@@ -118,14 +122,16 @@ impl PartialOrd for HeaderValue {
     }
 }
 
-impl<'py> FromPyObject<'py> for QueryParams {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        Ok(QueryParams(ob.extract::<KeyValPairs>()?.into_vec()?))
+impl<'py> FromPyObject<'_, 'py> for QueryParams {
+    type Error = PyErr;
+    fn extract(obj: Borrowed<'_, 'py, PyAny>) -> Result<Self, Self::Error> {
+        Ok(QueryParams(obj.extract::<KeyValPairs>()?.into_vec()?))
     }
 }
-impl<'py> FromPyObject<'py> for FormParams {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        Ok(FormParams(ob.extract::<KeyValPairs>()?.into_vec()?))
+impl<'py> FromPyObject<'_, 'py> for FormParams {
+    type Error = PyErr;
+    fn extract(obj: Borrowed<'_, 'py, PyAny>) -> Result<Self, Self::Error> {
+        Ok(FormParams(obj.extract::<KeyValPairs>()?.into_vec()?))
     }
 }
 
@@ -149,9 +155,10 @@ impl<'py> IntoPyObject<'py> for Version {
         }
     }
 }
-impl<'py> FromPyObject<'py> for Version {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        Ok(match ob.extract::<&str>()? {
+impl<'py> FromPyObject<'_, 'py> for Version {
+    type Error = PyErr;
+    fn extract(obj: Borrowed<'_, 'py, PyAny>) -> Result<Self, Self::Error> {
+        Ok(match obj.extract::<&str>()? {
             "HTTP/1.0" => Version(http::Version::HTTP_10),
             "HTTP/1.1" => Version(http::Version::HTTP_11),
             "HTTP/2.0" => Version(http::Version::HTTP_2),
@@ -162,13 +169,14 @@ impl<'py> FromPyObject<'py> for Version {
     }
 }
 
-impl<'py> FromPyObject<'py> for Extensions {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        if let Ok(dict) = ob.downcast_exact::<PyDict>() {
+impl<'py> FromPyObject<'_, 'py> for Extensions {
+    type Error = PyErr;
+    fn extract(obj: Borrowed<'_, 'py, PyAny>) -> Result<Self, Self::Error> {
+        if let Ok(dict) = obj.cast_exact::<PyDict>() {
             Ok(Extensions(dict.copy()?.unbind()))
         } else {
-            let dict = PyDict::new(ob.py());
-            ob.extract::<KeyValPairs>()?
+            let dict = PyDict::new(obj.py());
+            obj.extract::<KeyValPairs>()?
                 .for_each(|(key, value): (Bound<'py, PyString>, Bound<'py, PyAny>)| dict.set_item(key, value))?;
             Ok(Extensions(dict.unbind()))
         }
@@ -193,9 +201,10 @@ impl<'py> IntoPyObject<'py> for StatusCode {
         Ok(PyInt::new(py, self.0.as_u16()))
     }
 }
-impl<'py> FromPyObject<'py> for StatusCode {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let status = http::StatusCode::from_u16(ob.extract::<u16>()?)
+impl<'py> FromPyObject<'_, 'py> for StatusCode {
+    type Error = PyErr;
+    fn extract(obj: Borrowed<'_, 'py, PyAny>) -> Result<Self, Self::Error> {
+        let status = http::StatusCode::from_u16(obj.extract::<u16>()?)
             .map_err(|_| PyValueError::new_err("invalid status code"))?;
         Ok(StatusCode(status))
     }
@@ -214,8 +223,9 @@ impl<'py> IntoPyObject<'py> for JsonValue {
         Ok(pythonize(py, &self)?)
     }
 }
-impl<'py> FromPyObject<'py> for JsonValue {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        Ok(depythonize(ob)?)
+impl<'py> FromPyObject<'_, 'py> for JsonValue {
+    type Error = PyErr;
+    fn extract(obj: Borrowed<'_, 'py, PyAny>) -> Result<Self, Self::Error> {
+        Ok(depythonize(&obj)?)
     }
 }

@@ -252,14 +252,16 @@ impl From<&cookie_store::Cookie<'_>> for Cookie {
 }
 
 pub struct CookieType(pub cookie::Cookie<'static>);
-impl<'py> FromPyObject<'py> for CookieType {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        if let Ok(cookie) = ob.downcast_exact::<Cookie>() {
+impl<'py> FromPyObject<'_, 'py> for CookieType {
+    type Error = PyErr;
+
+    fn extract(obj: Borrowed<'_, 'py, PyAny>) -> Result<Self, Self::Error> {
+        if let Ok(cookie) = obj.cast_exact::<Cookie>() {
             return Ok(CookieType(cookie.get().0.clone()));
         }
-        if let Ok(str) = ob.extract::<&str>() {
+        if let Ok(str) = obj.extract::<&str>() {
             return Ok(CookieType(Cookie::parse_inner(str)?.into_owned()));
         }
-        Ok(CookieType(Cookie::parse_inner(ob.str()?.to_str()?)?.into_owned()))
+        Ok(CookieType(Cookie::parse_inner(obj.str()?.to_str()?)?.into_owned()))
     }
 }

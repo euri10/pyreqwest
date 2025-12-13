@@ -138,14 +138,16 @@ impl Mime {
 }
 
 pub struct MimeType(pub mime::Mime);
-impl<'py> FromPyObject<'py> for MimeType {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        if let Ok(mime) = ob.downcast_exact::<Mime>() {
+impl<'py> FromPyObject<'_, 'py> for MimeType {
+    type Error = PyErr;
+
+    fn extract(obj: Borrowed<'_, 'py, PyAny>) -> Result<Self, Self::Error> {
+        if let Ok(mime) = obj.cast_exact::<Mime>() {
             return Ok(MimeType(mime.get().0.clone()));
         }
-        if let Ok(str) = ob.extract::<&str>() {
+        if let Ok(str) = obj.extract::<&str>() {
             return Ok(MimeType(Mime::parse_inner(str)?));
         }
-        Ok(MimeType(Mime::parse_inner(ob.str()?.extract::<&str>()?)?))
+        Ok(MimeType(Mime::parse_inner(obj.str()?.extract::<&str>()?)?))
     }
 }

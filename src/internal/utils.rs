@@ -13,29 +13,24 @@ pub enum KeyValPairs<'py> {
     Sequence(Bound<'py, PySequence>),
 }
 impl<'py> KeyValPairs<'py> {
-    pub fn for_each<F, K: FromPyObject<'py>, V: FromPyObject<'py>>(self, mut f: F) -> PyResult<()>
+    pub fn for_each<F, K, V>(self, mut f: F) -> PyResult<()>
     where
         F: FnMut((K, V)) -> PyResult<()>,
+        for<'a> K: FromPyObject<'a, 'py>,
+        for<'a> V: FromPyObject<'a, 'py>,
     {
-        fn extract_pair<'py, K: FromPyObject<'py>, V: FromPyObject<'py>>(item: Bound<'py, PyAny>) -> PyResult<(K, V)>
-        where
-            (K, V): FromPyObject<'py>,
-        {
-            let (key, value): (K, V) = item.extract()?;
-            Ok((key, value))
-        }
-
         match self {
-            KeyValPairs::Mapping(v) => v.items()?.iter().try_for_each(|v| f(extract_pair(v)?)),
-            KeyValPairs::List(v) => v.try_iter()?.try_for_each(|v| f(extract_pair(v?)?)),
-            KeyValPairs::Tuple(v) => v.iter().try_for_each(|v| f(extract_pair(v)?)),
-            KeyValPairs::Sequence(v) => v.try_iter()?.try_for_each(|v| f(extract_pair(v?)?)),
+            KeyValPairs::Mapping(v) => v.items()?.iter().try_for_each(|v| f(v.extract::<(K, V)>()?)),
+            KeyValPairs::List(v) => v.try_iter()?.try_for_each(|v| f(v?.extract::<(K, V)>()?)),
+            KeyValPairs::Tuple(v) => v.iter().try_for_each(|v| f(v.extract::<(K, V)>()?)),
+            KeyValPairs::Sequence(v) => v.try_iter()?.try_for_each(|v| f(v?.extract::<(K, V)>()?)),
         }
     }
 
-    pub fn into_vec<K: FromPyObject<'py>, V: FromPyObject<'py>>(self) -> PyResult<Vec<(K, V)>>
+    pub fn into_vec<K, V>(self) -> PyResult<Vec<(K, V)>>
     where
-        (K, V): FromPyObject<'py>,
+        for<'a> K: FromPyObject<'a, 'py>,
+        for<'a> V: FromPyObject<'a, 'py>,
     {
         let mut res = Vec::with_capacity(self.len()?);
         self.for_each(|(key, value)| {

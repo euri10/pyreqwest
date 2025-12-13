@@ -261,7 +261,10 @@ fn vec_rev_iter<'py, T: IntoPyObject<'py>>(py: Python<'py>, mut v: Vec<T>) -> Py
     Ok(PyList::new(py, v)?.into_any().try_iter()?.unbind())
 }
 
-fn richcmp<'py, T: FromPyObject<'py> + Ord>(mut v: Vec<T>, other: Bound<'py, PyAny>, op: CompareOp) -> bool {
+fn richcmp<'py, T>(mut v: Vec<T>, other: Bound<'py, PyAny>, op: CompareOp) -> bool
+where
+    for<'a> T: FromPyObject<'a, 'py> + Ord,
+{
     let Ok(mut v2) = convert_vec::<T>(other) else {
         return matches!(op, CompareOp::Ne);
     };
@@ -287,6 +290,13 @@ fn set_op<'py, T: IntoPyObject<'py>>(
     PySet::new(op.py(), v)?.call_method1(op, (other_set,))
 }
 
-fn convert_vec<'py, T: FromPyObject<'py> + Ord>(ob: Bound<'py, PyAny>) -> PyResult<Vec<T>> {
-    ob.try_iter()?.map(|v| v?.extract::<T>()).collect()
+fn convert_vec<'py, T>(ob: Bound<'py, PyAny>) -> PyResult<Vec<T>>
+where
+    for<'a> T: FromPyObject<'a, 'py> + Ord,
+{
+    let mut out = Vec::new();
+    for item in ob.try_iter()? {
+        out.push(item?.extract::<T>().map_err(Into::into)?);
+    }
+    Ok(out)
 }

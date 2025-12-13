@@ -186,7 +186,7 @@ impl Request {
 
     pub async fn send_inner(py_request: &Py<PyAny>, cancel: CancelHandle) -> PyResult<BaseResponse> {
         let middlewares_next = Python::attach(|py| -> PyResult<_> {
-            let mut req = py_request.bind(py).downcast::<Self>()?.try_borrow_mut()?;
+            let mut req = py_request.bind(py).cast::<Self>()?.try_borrow_mut()?;
             let inner = req.mut_inner()?;
             inner.body_set_task_local(py, &inner.lazy_task_local)?;
             inner
@@ -220,7 +220,7 @@ impl Request {
 
     pub async fn spawn_request(request: &Py<PyAny>, cancel: CancelHandle) -> PyResult<BaseResponse> {
         let prepared_request =
-            Python::attach(|py| Self::prepare_spawn_request(request.bind(py).downcast::<Self>()?, false))?;
+            Python::attach(|py| Self::prepare_spawn_request(request.bind(py).cast::<Self>()?, false))?;
         AllowThreads(Spawner::spawn_reqwest(prepared_request, cancel)).await
     }
 

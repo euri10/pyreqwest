@@ -1,5 +1,5 @@
 use pyo3::prelude::*;
-use std::pin::{Pin, pin};
+use std::pin::Pin;
 use std::task::{Context, Poll};
 
 #[repr(transparent)]

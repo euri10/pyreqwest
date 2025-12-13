@@ -223,11 +223,11 @@ async def test_default_headers__good(echo_server: SubprocessServer, value: Mappi
 
 
 async def test_default_headers__bad():
-    with pytest.raises(TypeError, match="argument 'headers': 'str' object cannot be converted to 'PyTuple'"):
+    with pytest.raises(TypeError, match="argument 'headers': 'str' object cannot be cast as 'tuple'"):
         ClientBuilder().default_headers(["foo"])  # type: ignore[list-item]
-    with pytest.raises(TypeError, match="argument 'headers': 'int' object cannot be converted to 'PyString'"):
+    with pytest.raises(TypeError, match="argument 'headers': 'int' object cannot be cast as 'str'"):
         ClientBuilder().default_headers({"X-Test": 123})  # type: ignore[dict-item]
-    with pytest.raises(TypeError, match="argument 'headers': 'str' object cannot be converted to 'PyTuple'"):
+    with pytest.raises(TypeError, match="argument 'headers': 'str' object cannot be cast as 'tuple'"):
         ClientBuilder().default_headers("bad")  # type: ignore[arg-type]
     with pytest.raises(ValueError, match="invalid HTTP header name"):
         ClientBuilder().default_headers({"X-Test\n": "foo"})
@@ -238,7 +238,9 @@ async def test_default_headers__bad():
 async def test_response_compression(echo_server: SubprocessServer):
     async with ClientBuilder().error_for_status(True).build() as client:
         res = await (await client.get(echo_server.url).build().send()).json()
-        assert ["accept-encoding", "gzip, br, zstd, deflate"] in res["headers"]
+        accepts = {enc.strip() for enc in dict(res["headers"])["accept-encoding"].split(",")}
+        assert accepts == {"gzip", "deflate", "br", "zstd"}
+
         url = echo_server.url.with_query({"compress": "gzip"})
         resp = await client.get(url).build().send()
         assert resp.headers["x-content-encoding"] == "gzip"
@@ -250,7 +252,8 @@ async def test_response_compression(echo_server: SubprocessServer):
 
     async with ClientBuilder().gzip(False).error_for_status(True).build() as client:
         res = await (await client.get(echo_server.url).build().send()).json()
-        assert ["accept-encoding", "br, zstd, deflate"] in res["headers"]
+        accepts = {enc.strip() for enc in dict(res["headers"])["accept-encoding"].split(",")}
+        assert accepts == {"deflate", "br", "zstd"}
 
 
 @pytest.mark.parametrize("str_url", [False, True])

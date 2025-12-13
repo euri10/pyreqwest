@@ -99,7 +99,7 @@ impl HeaderMap {
 
     fn __eq__(&self, py: Python, other: Bound<PyAny>) -> PyResult<bool> {
         self.ref_map(|map| {
-            if let Ok(other) = other.downcast_exact::<HeaderMap>() {
+            if let Ok(other) = other.cast_exact::<HeaderMap>() {
                 other.get().ref_map(|other| Ok(map == other))
             } else if let Ok(other) = other.extract::<HeaderMap>() {
                 other.ref_map(|other| Ok(map == other))
@@ -390,9 +390,9 @@ impl HeaderMap {
 
             match dict.get_item(key)? {
                 None => dict.set_item(key, value)?,
-                Some(existing) => match existing.downcast_into_exact::<PyString>() {
+                Some(existing) => match existing.cast_into_exact::<PyString>() {
                     Ok(existing) => dict.set_item(key, PyList::new(py, vec![existing, value])?)?,
-                    Err(e) => e.into_inner().downcast_into_exact::<PyList>()?.append(value)?,
+                    Err(e) => e.into_inner().cast_into_exact::<PyList>()?.append(value)?,
                 },
             }
         }
@@ -420,12 +420,14 @@ impl<'py> PopArg<'py> {
     }
 }
 
-impl<'py> FromPyObject<'py> for HeaderMap {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        if let Ok(map) = ob.downcast_exact::<HeaderMap>() {
+impl<'py> FromPyObject<'py, '_> for HeaderMap {
+    type Error = PyErr;
+
+    fn extract(obj: Borrowed<'py, '_, PyAny>) -> Result<Self, Self::Error> {
+        if let Ok(map) = obj.cast_exact::<HeaderMap>() {
             Ok(map.get().try_clone()?)
         } else {
-            Ok(HeaderMap::new_py(Some(ob.extract::<KeyValPairs>()?))?)
+            Ok(HeaderMap::new_py(Some(obj.extract::<KeyValPairs>()?))?)
         }
     }
 }

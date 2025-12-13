@@ -145,11 +145,11 @@ impl Url {
         for (k, v) in self.query_pairs_vec(py) {
             match dict.get_item(k)? {
                 None => dict.set_item(k, v)?,
-                Some(existing) => match existing.downcast_into_exact::<PyList>() {
+                Some(existing) => match existing.cast_into_exact::<PyList>() {
                     Ok(existing) => existing.append(v)?,
                     Err(err) => {
                         let existing = err.into_inner();
-                        let existing = existing.downcast_exact::<PyString>()?;
+                        let existing = existing.cast_exact::<PyString>()?;
                         dict.set_item(k, PyList::new(py, vec![existing, v.bind(py)])?)?;
                     }
                 },
@@ -375,14 +375,16 @@ impl Clone for Url {
 }
 
 pub struct UrlType(pub url::Url);
-impl<'py> FromPyObject<'py> for UrlType {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        if let Ok(url) = ob.downcast_exact::<Url>() {
+impl<'py> FromPyObject<'_, 'py> for UrlType {
+    type Error = PyErr;
+
+    fn extract(obj: Borrowed<'_, 'py, PyAny>) -> Result<Self, Self::Error> {
+        if let Ok(url) = obj.cast_exact::<Url>() {
             return Ok(UrlType(url.try_borrow()?.url.clone()));
         }
-        if let Ok(str) = ob.extract::<&str>() {
+        if let Ok(str) = obj.extract::<&str>() {
             return Ok(UrlType(Url::parse_inner(str)?));
         }
-        Ok(UrlType(Url::parse_inner(ob.str()?.to_str()?)?))
+        Ok(UrlType(Url::parse_inner(obj.str()?.to_str()?)?))
     }
 }

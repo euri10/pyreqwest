@@ -46,7 +46,7 @@ impl Next {
             let resp = AllowThreads(next_waiter).await?;
             Python::attach(|py| {
                 resp.into_bound(py)
-                    .downcast_into_exact::<Response>()?
+                    .cast_into_exact::<Response>()?
                     .into_super()
                     .try_borrow_mut()?
                     .take_inner()
@@ -99,13 +99,13 @@ impl SyncNext {
     pub fn run_inner(&self, request: &Bound<PyAny>) -> PyResult<BaseResponse> {
         if let Some(middleware) = self.0.current_middleware()? {
             let resp = self.call_next(middleware, request)?;
-            resp.downcast_into_exact::<SyncResponse>()?
+            resp.cast_into_exact::<SyncResponse>()?
                 .into_super()
                 .try_borrow_mut()?
                 .take_inner()
         } else {
             // No more middleware, execute the request
-            Request::blocking_spawn_request(request.downcast::<Request>()?)
+            Request::blocking_spawn_request(request.cast::<Request>()?)
         }
     }
 

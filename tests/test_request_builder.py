@@ -123,9 +123,9 @@ async def test_timeout(client: Client, echo_server: SubprocessServer, server_sle
     else:
         assert await req.send()
 
-    with pytest.raises(TypeError, match="object cannot be converted"):
+    with pytest.raises(TypeError, match="'int' object cannot be cast as 'timedelta'"):
         client.get(echo_server.url).timeout(1)  # type: ignore[arg-type]
-    with pytest.raises(TypeError, match="object cannot be converted"):
+    with pytest.raises(TypeError, match="'float' object cannot be cast as 'timedelta'"):
         client.get(echo_server.url).timeout(1.0)  # type: ignore[arg-type]
 
 
@@ -180,13 +180,13 @@ async def test_form_query_invalid(client: Client, echo_server: SubprocessServer,
         assert case == "form"
         return client.get(echo_server.url).form(v)
 
-    with pytest.raises(TypeError, match="object cannot be converted"):
+    with pytest.raises(TypeError, match="'str' object cannot be cast as 'tuple'"):
         build("invalid")
     with pytest.raises(TypeError, match="failed to extract"):
         build(None)
-    with pytest.raises(TypeError, match="object cannot be converted"):
+    with pytest.raises(TypeError, match="'str' object cannot be cast as 'tuple'"):
         build(["a", "b"])
-    with pytest.raises(TypeError, match="'int' object cannot be converted to 'PyString'"):
+    with pytest.raises(TypeError, match="'int' object cannot be cast as 'str'"):
         build([(1, "b")])
     with pytest.raises(BuilderError, match="Failed to build request") as e:
         build([("foo", {"a": "b"})]).build()
@@ -210,7 +210,7 @@ async def test_extensions(client: Client, echo_server: SubprocessServer):
     resp = await client.get(echo_server.url).extensions({}).build().send()
     assert resp.extensions == {}
 
-    with pytest.raises(TypeError, match="object cannot be converted"):
+    with pytest.raises(TypeError, match="failed to extract"):
         client.get(echo_server.url).extensions(1)  # type: ignore[arg-type]
-    with pytest.raises(TypeError, match="'int' object cannot be converted to 'PyString'"):
+    with pytest.raises(TypeError, match="'int' object cannot be cast as 'str'"):
         client.get(echo_server.url).extensions([(1, "b")])  # type: ignore[list-item]

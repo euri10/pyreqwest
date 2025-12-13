@@ -108,7 +108,7 @@ async def example_body_matching() -> None:
 async def example_custom_predicate_matcher() -> None:
     """Example showing custom matcher usage"""
 
-    async def matcher(request: Request) -> bool:  # Is also works with sync functions
+    async def matcher(request: Request) -> bool:  # This also works with sync functions
         return request.method in ("GET", "POST")
 
     with client_mocker_ctx() as client_mocker:
@@ -127,7 +127,7 @@ async def example_custom_predicate_matcher() -> None:
 async def example_custom_matcher_with_response() -> None:
     """Example showing custom matcher usage"""
 
-    async def matcher(request: Request) -> Response | None:  # Is also works with sync functions
+    async def matcher(request: Request) -> Response | None:  # This also works with sync functions
         if request.method not in ("GET", "POST"):
             return None  # No match
         return await ResponseBuilder().status(201).body_json({"res": 42, "method_was": request.method}).build()
