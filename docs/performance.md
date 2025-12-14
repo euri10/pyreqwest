@@ -1,6 +1,6 @@
 ### Async runtime
 
-Reqwest uses the `tokio` async runtime, so `pyreqwest` does as well. By default, the library runs on a global
+`pyreqwest` uses `tokio` Rust async runtime, similar to `reqwest`. By default, the library runs on a global
 single-threaded runtime chosen for simplicity and performance, which is sufficient for most use cases.
 If needed, you can provide a dedicated `tokio` runtime via `ClientBuilder.runtime(Runtime)`.
 
@@ -15,7 +15,7 @@ Many `copy()` operations provided by the library create a zero-copy view of the 
 enabling efficient request retrying (when done e.g. via a middleware).
 
 Library usually transfers ownership of its internal data structures between different functions calls,
-such as those sending requests or builders. Therefore, some instance become usable after usage. For example, after
+such as those sending requests or builders. Therefore, some instances become unusable after usage. For example, after
 calling `Request.send()`, the `Request` instance is no longer usable.
 
 ### GIL releasing
