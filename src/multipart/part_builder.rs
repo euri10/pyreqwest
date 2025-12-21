@@ -1,7 +1,7 @@
-use crate::allow_threads::AllowThreads;
-use crate::asyncio::OnceTaskLocal;
 use crate::client::RuntimeHandle;
 use crate::http::{HeaderMap, MimeType};
+use crate::internal::allow_threads::AllowThreads;
+use crate::internal::asyncio::OnceTaskLocal;
 use crate::internal::body_stream::BodyStream;
 use pyo3::coroutine::CancelHandle;
 use pyo3::exceptions::{PyRuntimeError, PyValueError};

@@ -1,7 +1,7 @@
-use crate::allow_threads::AllowThreads;
-use crate::asyncio::OnceTaskLocal;
 use crate::client::RuntimeHandle;
 use crate::http::HeaderMap;
+use crate::internal::allow_threads::AllowThreads;
+use crate::internal::asyncio::OnceTaskLocal;
 use crate::internal::types::{Extensions, HeaderName, HeaderValue, JsonValue, StatusCode, Version};
 use crate::request::RequestBody;
 use crate::response::internal::{BodyConsumeConfig, StreamedReadConfig};

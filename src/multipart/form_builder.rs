@@ -1,5 +1,5 @@
-use crate::allow_threads::AllowThreads;
 use crate::client::RuntimeHandle;
+use crate::internal::allow_threads::AllowThreads;
 use crate::multipart::PartBuilder;
 use pyo3::coroutine::CancelHandle;
 use pyo3::exceptions::PyRuntimeError;

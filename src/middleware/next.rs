@@ -1,5 +1,5 @@
-use crate::allow_threads::AllowThreads;
-use crate::asyncio::{PyCoroWaiter, TaskLocal, py_coro_waiter};
+use crate::internal::allow_threads::AllowThreads;
+use crate::internal::asyncio::{PyCoroWaiter, TaskLocal, py_coro_waiter};
 use crate::request::Request;
 use crate::response::{BaseResponse, Response, SyncResponse};
 use pyo3::coroutine::CancelHandle;

@@ -1,4 +1,4 @@
-use crate::asyncio::{OnceTaskLocal, PyCoroWaiter, TaskLocal, py_coro_waiter};
+use crate::internal::asyncio::{OnceTaskLocal, PyCoroWaiter, TaskLocal, py_coro_waiter};
 use futures_util::{FutureExt, Stream};
 use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;

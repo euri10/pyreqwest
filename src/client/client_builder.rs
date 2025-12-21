@@ -1,4 +1,3 @@
-use crate::asyncio::is_async_callable;
 use crate::client::Client;
 use crate::client::client::{BaseClient, SyncClient};
 use crate::client::internal::ConnectionLimiter;
@@ -7,6 +6,7 @@ use crate::client::runtime::RuntimeHandle;
 use crate::cookie::{CookieStore, CookieStorePyProxy};
 use crate::exceptions::BuilderError;
 use crate::http::{HeaderMap, Url, UrlType};
+use crate::internal::asyncio::is_async_callable;
 use crate::internal::json::JsonHandler;
 use crate::proxy::ProxyBuilder;
 use pyo3::exceptions::{PyRuntimeError, PyValueError};

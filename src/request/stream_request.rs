@@ -1,4 +1,4 @@
-use crate::allow_threads::AllowThreads;
+use crate::internal::allow_threads::AllowThreads;
 use crate::request::{Request, RequestBody};
 use crate::response::{Response, SyncResponse};
 use pyo3::coroutine::CancelHandle;
