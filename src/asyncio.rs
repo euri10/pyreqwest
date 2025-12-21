@@ -43,7 +43,7 @@ pub fn is_async_callable(obj: &Bound<PyAny>) -> PyResult<bool> {
     if obj.hasattr(intern!(obj.py(), "__call__"))? {
         return iscoroutinefunction(&obj.getattr(intern!(obj.py(), "__call__"))?);
     }
-    Ok(false)
+    Ok(false) // :NOCOV
 }
 
 fn iscoroutinefunction(obj: &Bound<PyAny>) -> PyResult<bool> {
@@ -112,7 +112,7 @@ impl InnerTaskCreator {
     fn create_task(&mut self, py: Python) -> PyResult<()> {
         fn inner_create<'py>(slf: &mut InnerTaskCreator, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
             let Some(coro) = slf.coro.take() else {
-                return Err(CancelledError::new_err("Task was cancelled"));
+                return Err(CancelledError::new_err("Task was cancelled")); // :NOCOV
             };
             let task = slf
                 .event_loop
@@ -126,7 +126,7 @@ impl InnerTaskCreator {
 
         match inner_create(self, py) {
             Ok(task) => self.task = Some(task.unbind()),
-            Err(e) => self.on_done_callback.get().tx_send(py, Err(e))?,
+            Err(e) => self.on_done_callback.get().tx_send(py, Err(e))?, // :NOCOV
         }
         Ok(())
     }
@@ -168,7 +168,7 @@ impl Future for PyCoroWaiter {
                     // Cancel inner task and cancel the Future right away
                     return match Python::attach(|py| self.task_creator.get().cancel(py)) {
                         Ok(()) => Poll::Ready(Err(CancelledError::new_err("Task was cancelled"))),
-                        Err(e) => Poll::Ready(Err(e)),
+                        Err(e) => Poll::Ready(Err(e)), // :NOCOV
                     };
                 }
                 Poll::Pending => {}
@@ -275,9 +275,10 @@ impl TaskLocal {
 
 pub struct OnceTaskLocal(PyOnceLock<TaskLocal>);
 impl Default for OnceTaskLocal {
+    // :NOCOV_START
     fn default() -> Self {
         Self::new()
-    }
+    } // :NOCOV_END
 }
 
 impl OnceTaskLocal {
