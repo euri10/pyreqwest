@@ -3,6 +3,8 @@
 </p>
 
 ---
+[![codecov](https://codecov.io/github/markussintonen/pyreqwest/graph/badge.svg?token=OET0CMZYOH)](https://codecov.io/github/markussintonen/pyreqwest)
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/pyreqwest)
 
 pyreqwest - Powerful and fast Rust based HTTP client. Built on top of and inspired by [reqwest](https://github.com/seanmonstar/reqwest).
 
