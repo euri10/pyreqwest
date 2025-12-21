@@ -188,7 +188,9 @@ jobs:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
 
-      - run: pip install -U twine 'ruff==0.14.0'
+      - run: |
+          pip install -U packaging
+          pip install -U twine 'ruff==0.14.0'
 
       # https://aws.github.io/aws-lc-rs/faq.html#can-i-run-aws-lc-rs-on-x-platform-or-architecture
       - name: Setup aws-lc-rs

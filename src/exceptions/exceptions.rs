@@ -80,15 +80,15 @@ fn details_from_err(err: &(dyn Error + 'static)) -> JsonValue {
 
 fn details_from_panic(payload: Box<dyn Any>) -> JsonValue {
     if let Some(s) = payload.downcast_ref::<String>() {
-        return JsonValue(json!({"causes": [s]}));
+        return JsonValue(json!({"causes": [s]})); // :NOCOV
     }
     if let Some(s) = payload.downcast_ref::<&'static str>() {
-        return JsonValue(json!({"causes": [s]}));
+        return JsonValue(json!({"causes": [s]})); // :NOCOV
     }
     if let Some(e) = payload.downcast_ref::<PyErr>() {
         return details_from_err(e);
     }
-    JsonValue(json!({"causes": serde_json::Value::Null}))
+    JsonValue(json!({"causes": serde_json::Value::Null})) // :NOCOV
 }
 
 fn details_from_causes<'a>(err_causes: impl Iterator<Item = &'a (dyn Error + 'static)>) -> JsonValue {

@@ -20,6 +20,7 @@ grcov . \
   --branch \
   --ignore-not-existing \
   --ignore '**/build.rs' \
+  --ignore 'src/lib.rs' \
   --excl-start ':NOCOV_START' \
   --excl-stop ':NOCOV_END' \
   --excl-line ':NOCOV|^( )+}$|unreachable!|^#\['

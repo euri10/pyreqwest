@@ -1,8 +1,7 @@
 use pyo3::basic::CompareOp;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
-use pyo3::sync::PyOnceLock;
-use pyo3::types::{PyDict, PyIterator, PyString, PyTuple};
+use pyo3::types::{PyIterator, PyString};
 use pyo3::{IntoPyObjectExt, intern};
 use std::hash::{DefaultHasher, Hash, Hasher};
 use std::str::FromStr;
@@ -84,8 +83,6 @@ impl Mime {
         .into_bound_py_any(py)
     }
 
-    // Sequence methods
-
     fn __len__(&self) -> usize {
         self.0.as_ref().len()
     }
@@ -100,31 +97,6 @@ impl Mime {
 
     fn __iter__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyIterator>> {
         self.__str__(py).try_iter()
-    }
-
-    fn __reversed__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
-        static REVERSED: PyOnceLock<Py<PyAny>> = PyOnceLock::new();
-        REVERSED.import(py, "builtins", "reversed")?.call1((self.__str__(py),))
-    }
-
-    #[pyo3(signature = (*args, **kwargs))]
-    fn index<'py>(
-        &self,
-        args: &Bound<'py, PyTuple>,
-        kwargs: Option<&Bound<'py, PyDict>>,
-    ) -> PyResult<Bound<'py, PyAny>> {
-        self.__str__(args.py())
-            .call_method(intern!(args.py(), "index"), args, kwargs)
-    }
-
-    #[pyo3(signature = (*args, **kwargs))]
-    fn count<'py>(
-        &self,
-        args: &Bound<'py, PyTuple>,
-        kwargs: Option<&Bound<'py, PyDict>>,
-    ) -> PyResult<Bound<'py, PyAny>> {
-        self.__str__(args.py())
-            .call_method(intern!(args.py(), "count"), args, kwargs)
     }
 }
 impl Mime {
