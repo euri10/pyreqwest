@@ -9,6 +9,8 @@ from pyreqwest.exceptions import ClientClosedError, StatusError
 from pyreqwest.http import HeaderMap
 from pyreqwest.response import Response, SyncResponse
 
+from tests.utils import IS_CI
+
 from .servers.server import find_free_port
 from .servers.server_subprocess import SubprocessServer
 
@@ -110,8 +112,9 @@ async def test_connect_error(httpx_client: httpx.AsyncClient):
 
 
 async def test_read_timeout_body(echo_server: SubprocessServer):
+    timeout = 1.0 if IS_CI else 0.1
     async with (
-        ClientBuilder().read_timeout(timedelta(seconds=0.1)).build() as client,
+        ClientBuilder().read_timeout(timedelta(seconds=timeout)).build() as client,
         httpx.AsyncClient(transport=HttpxTransport(client)) as httpx_client,
     ):
         with pytest.raises(httpx.ReadTimeout):
@@ -217,8 +220,9 @@ def test_sync_connect_error(sync_httpx_client: httpx.Client):
 
 
 def test_sync_read_timeout_body(echo_server: SubprocessServer):
+    timeout = 1.0 if IS_CI else 0.1
     with (
-        SyncClientBuilder().read_timeout(timedelta(seconds=0.1)).build() as client,
+        SyncClientBuilder().read_timeout(timedelta(seconds=timeout)).build() as client,
         httpx.Client(transport=SyncHttpxTransport(client)) as httpx_client,
         pytest.raises(httpx.ReadTimeout),
     ):
