@@ -1,4 +1,4 @@
-"""Compatibility layer for httpx. Which allows pyreqwest to replace httpcore transport for httpx."""
+"""Compatibility layer for httpx, which allows pyreqwest to replace httpcore transport for httpx."""
 
 from collections.abc import AsyncIterator, Iterator
 from contextlib import AsyncExitStack, ExitStack
@@ -18,7 +18,7 @@ class HttpxTransport(httpx.AsyncBaseTransport):
     Example usage:
     ```python
     import httpx
-    from pyreqwest.compatibility import HttpxTransport
+    from pyreqwest.compatibility.httpx import HttpxTransport
 
     async with httpx.AsyncClient(transport=HttpxTransport()) as httpx_client:
         print(await httpx_client.get("https://example.com"))
@@ -69,7 +69,7 @@ class SyncHttpxTransport(httpx.BaseTransport):
     Example usage:
     ```python
     import httpx
-    from pyreqwest.compatibility import SyncHttpxTransport
+    from pyreqwest.compatibility.httpx import SyncHttpxTransport
 
     with httpx.Client(transport=SyncHttpxTransport()) as httpx_client:
         print(httpx_client.get("https://example.com"))
