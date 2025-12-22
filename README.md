@@ -76,3 +76,7 @@ Context manager usage is optional, but recommended. Also `close()` methods are a
 See [docs](https://markussintonen.github.io/pyreqwest/pyreqwest.html)
 
 See [examples](https://github.com/MarkusSintonen/pyreqwest/tree/main/examples)
+
+## Compatibility with other libraries
+
+See [compatibility docs](https://markussintonen.github.io/pyreqwest/pyreqwest/compatibility.html)
