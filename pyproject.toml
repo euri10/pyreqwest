@@ -53,6 +53,7 @@ dev = [
     "yarl==1.22.0",
     "multidict==6.7.0",
     "starlette==0.50.0",
+    "httpx==0.28.1",
     # Examples
     "docker==7.1.0", # For go-httpbin (python httpbin is not great)
     "types-docker==7.1.0.20251202",
@@ -61,7 +62,6 @@ dev = [
 ]
 bench = [
     "aiohttp==3.13.2",
-    "httpx==0.28.1",
     "urllib3==2.6.2",
     "matplotlib==3.10.8",
 ]

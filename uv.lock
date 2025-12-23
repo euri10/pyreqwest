@@ -1636,7 +1636,6 @@ source = { virtual = "." }
 [package.dev-dependencies]
 bench = [
     { name = "aiohttp" },
-    { name = "httpx" },
     { name = "matplotlib" },
     { name = "urllib3" },
 ]
@@ -1645,6 +1644,7 @@ dev = [
     { name = "dirty-equals" },
     { name = "docker" },
     { name = "granian" },
+    { name = "httpx" },
     { name = "maturin" },
     { name = "multidict" },
     { name = "mypy" },
@@ -1666,7 +1666,6 @@ dev = [
 [package.metadata.requires-dev]
 bench = [
     { name = "aiohttp", specifier = "==3.13.2" },
-    { name = "httpx", specifier = "==0.28.1" },
     { name = "matplotlib", specifier = "==3.10.8" },
     { name = "urllib3", specifier = "==2.6.2" },
 ]
@@ -1675,6 +1674,7 @@ dev = [
     { name = "dirty-equals", specifier = "==0.11" },
     { name = "docker", specifier = "==7.1.0" },
     { name = "granian", specifier = "==2.6.0" },
+    { name = "httpx", specifier = "==0.28.1" },
     { name = "maturin", specifier = "==1.10.2" },
     { name = "multidict", specifier = "==6.7.0" },
     { name = "mypy", specifier = "==1.19.0" },

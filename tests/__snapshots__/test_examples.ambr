@@ -82,6 +82,30 @@
   
   '''
 # ---
+# name: test_examples[compatibility_httpx-example_httpx]
+  '''
+  
+  # running: example_httpx
+  {'url': 'http://localhost:<PORT>/get?q=pyreqwest', 'status': 200}
+  
+  '''
+# ---
+# name: test_examples[compatibility_httpx-example_httpx_custom_client]
+  '''
+  
+  # running: example_httpx_custom_client
+  {'url': 'http://localhost:<PORT>/get?q=pyreqwest', 'status': 200}
+  
+  '''
+# ---
+# name: test_examples[compatibility_httpx-example_httpx_sync]
+  '''
+  
+  # running: example_httpx_sync
+  {'url': 'http://localhost:<PORT>/get?q=pyreqwest', 'status': 200}
+  
+  '''
+# ---
 # name: test_examples[cookies-example_cookie_store]
   '''
   
