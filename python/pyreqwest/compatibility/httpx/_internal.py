@@ -1,17 +1,28 @@
 from datetime import timedelta
-from typing import TYPE_CHECKING, TypeVar
+from typing import TypeVar
 
 import httpx
 
 from pyreqwest import exceptions
+from pyreqwest.exceptions import PyreqwestError
 from pyreqwest.request import BaseRequestBuilder
 from pyreqwest.response import BaseResponse
 
-if TYPE_CHECKING:
-    from pyreqwest.exceptions import PyreqwestError
-
-
 T = TypeVar("T", bound=BaseRequestBuilder)
+
+EXCEPTION_MAPPING: dict[type[PyreqwestError], type[httpx.RequestError]] = {
+    exceptions.ConnectTimeoutError: httpx.ConnectTimeout,
+    exceptions.ReadTimeoutError: httpx.ReadTimeout,
+    exceptions.WriteTimeoutError: httpx.WriteTimeout,
+    exceptions.PoolTimeoutError: httpx.PoolTimeout,
+    exceptions.RequestTimeoutError: httpx.TimeoutException,
+    exceptions.ConnectError: httpx.ConnectError,
+    exceptions.ReadError: httpx.ReadError,
+    exceptions.WriteError: httpx.WriteError,
+    exceptions.NetworkError: httpx.NetworkError,
+    exceptions.DecodeError: httpx.DecodingError,
+    exceptions.RedirectError: httpx.TooManyRedirects,
+}
 
 
 def build_httpx_response(
@@ -39,20 +50,7 @@ def map_extensions(builder: T, request: httpx.Request) -> T:
 
 
 def map_exception(exc: Exception, request: httpx.Request) -> Exception | None:
-    mapping: dict[type[PyreqwestError], type[httpx.RequestError]] = {
-        exceptions.ConnectTimeoutError: httpx.ConnectTimeout,
-        exceptions.ReadTimeoutError: httpx.ReadTimeout,
-        exceptions.WriteTimeoutError: httpx.WriteTimeout,
-        exceptions.PoolTimeoutError: httpx.PoolTimeout,
-        exceptions.RequestTimeoutError: httpx.TimeoutException,
-        exceptions.ConnectError: httpx.ConnectError,
-        exceptions.ReadError: httpx.ReadError,
-        exceptions.WriteError: httpx.WriteError,
-        exceptions.NetworkError: httpx.NetworkError,
-        exceptions.DecodeError: httpx.DecodingError,
-        exceptions.RedirectError: httpx.TooManyRedirects,
-    }
-    for pyreqwest_exc, httpx_exc in mapping.items():
+    for pyreqwest_exc, httpx_exc in EXCEPTION_MAPPING.items():
         if isinstance(exc, pyreqwest_exc):
             return httpx_exc(exc.message, request=request)
     return None
