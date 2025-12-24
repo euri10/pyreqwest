@@ -34,7 +34,7 @@ class SubprocessServer:
     @property
     def url(self) -> Url:
         proto = "https" if self.config.is_https else "http"
-        return Url(f"{proto}://localhost:{self.port}")
+        return Url(f"{proto}://127.0.0.1:{self.port}")
 
     @property
     def running(self) -> bool:
