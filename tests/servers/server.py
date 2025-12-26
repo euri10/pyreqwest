@@ -74,12 +74,13 @@ class EmbeddedServer(GranianServer):
             ssl_cert=config.ssl_cert,
             ssl_key=config.ssl_key,
             http=config.http,
+            runtime_threads=4,
         )
 
     @property
     def url(self) -> Url:
         proto = "https" if self.ssl_ctx[0] else "http"
-        return Url(f"{proto}://{self.bind_addr}:{self.bind_port}")
+        return Url(f"{proto}://127.0.0.1:{self.bind_port}")
 
     @asynccontextmanager
     async def serve_context(self) -> AsyncGenerator[Self]:

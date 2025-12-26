@@ -346,7 +346,7 @@ async def test_proxy_nested_request(echo_server: SubprocessServer) -> None:
     middleware.client = client
 
     resp = await client.get("http://foo.invalid").build().send()
-    assert dict((await resp.json())["headers"])["host"].startswith("localhost:")
+    assert dict((await resp.json())["headers"])["host"].startswith("127.0.0.1:")
 
 
 async def test_nested_request_context_var(echo_server: SubprocessServer) -> None:
@@ -383,7 +383,7 @@ async def test_proxy_modify_request(echo_server: SubprocessServer) -> None:
             return await next_handler.run(request)
 
     res = await build_client(MiddlewareProxy()).get("http://foo.invalid").build().send()
-    assert dict((await res.json())["headers"])["host"].startswith("localhost:")
+    assert dict((await res.json())["headers"])["host"].startswith("127.0.0.1:")
 
 
 async def test_mocking_via_middleware(monkeypatch: pytest.MonkeyPatch) -> None:
