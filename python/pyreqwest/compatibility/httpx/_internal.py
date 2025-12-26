@@ -49,8 +49,12 @@ def map_extensions(builder: T, request: httpx.Request) -> T:
     return builder.extensions(ext)
 
 
-def map_exception(exc: Exception, request: httpx.Request) -> Exception | None:
+def map_exception(exc: PyreqwestError, request: httpx.Request) -> httpx.RequestError | None:
+    if exact := EXCEPTION_MAPPING.get(type(exc)):
+        return exact(exc.message, request=request)
+
     for pyreqwest_exc, httpx_exc in EXCEPTION_MAPPING.items():
         if isinstance(exc, pyreqwest_exc):
             return httpx_exc(exc.message, request=request)
+
     return None

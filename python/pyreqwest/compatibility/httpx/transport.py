@@ -6,6 +6,7 @@ from contextlib import AsyncExitStack, ExitStack
 import httpx
 
 from pyreqwest.client import Client, ClientBuilder, SyncClient, SyncClientBuilder
+from pyreqwest.exceptions import PyreqwestError
 from pyreqwest.request import RequestBuilder, SyncRequestBuilder
 from pyreqwest.response import Response, SyncResponse
 
@@ -58,7 +59,7 @@ class HttpxTransport(httpx.AsyncBaseTransport):
             return build_httpx_response(response, response_stream=ResponseStream(response, req_exit_stack))
         except Exception as exc:
             await req_exit_stack.aclose()
-            if mapped := map_exception(exc, request):
+            if isinstance(exc, PyreqwestError) and (mapped := map_exception(exc, request)):
                 raise mapped from exc
             raise
 
@@ -112,7 +113,7 @@ class SyncHttpxTransport(httpx.BaseTransport):
             return build_httpx_response(response, response_stream=SyncResponseStream(response, req_exit_stack))
         except Exception as exc:
             req_exit_stack.close()
-            if mapped := map_exception(exc, request):
+            if isinstance(exc, PyreqwestError) and (mapped := map_exception(exc, request)):
                 raise mapped from exc
             raise
 
