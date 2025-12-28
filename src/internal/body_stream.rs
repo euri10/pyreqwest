@@ -1,4 +1,5 @@
-use crate::internal::asyncio::{OnceTaskLocal, PyCoroWaiter, TaskLocal, py_coro_waiter};
+use crate::internal::asyncio_coro::BytesCoroWaiter;
+use crate::internal::task_local::{OnceTaskLocal, TaskLocal};
 use futures_util::{FutureExt, Stream};
 use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
@@ -31,7 +32,8 @@ impl Stream for BodyStream {
             Some(StreamWaiter::Async(waiter)) => waiter.poll_unpin(cx),
             Some(StreamWaiter::Sync(obj)) => Poll::Ready(
                 obj.take()
-                    .ok_or_else(|| PyRuntimeError::new_err("Unexpected missing stream value")),
+                    .ok_or_else(|| PyRuntimeError::new_err("Unexpected missing stream value"))
+                    .flatten(),
             ),
             None => unreachable!("cur_waiter should be Some here"),
         };
@@ -40,16 +42,8 @@ impl Stream for BodyStream {
             Poll::Ready(res) => {
                 self.cur_waiter = None;
                 match res {
-                    Ok(res) => {
-                        Python::attach(|py| {
-                            if self.is_end_marker(py, &res) {
-                                Poll::Ready(None) // Stream ended
-                            } else {
-                                let bytes = res.extract::<PyBytes>(py)?;
-                                Poll::Ready(Some(Ok(bytes)))
-                            }
-                        })
-                    }
+                    Ok(Some(res)) => Poll::Ready(Some(Ok(res))),
+                    Ok(None) => Poll::Ready(None), // End of stream
                     Err(e) => Poll::Ready(Some(Err(e))),
                 }
             }
@@ -109,16 +103,24 @@ impl BodyStream {
                 static ANEXT: PyOnceLock<Py<PyAny>> = PyOnceLock::new();
                 let coro = ANEXT
                     .import(py, "builtins", "anext")?
-                    .call1((py_iter, self.ellipsis(py)))?;
-                Ok(StreamWaiter::Async(py_coro_waiter(coro, task_local, None)?))
+                    .call1((py_iter, Self::ellipsis(py)))?;
+                Ok(StreamWaiter::Async(BytesCoroWaiter::new(coro, Self::bytes_extractor, task_local, None)?))
             } else {
                 static NEXT: PyOnceLock<Py<PyAny>> = PyOnceLock::new();
                 let res = NEXT
                     .import(py, "builtins", "next")?
-                    .call1((py_iter, self.ellipsis(py)))?;
-                Ok(StreamWaiter::Sync(Some(res.unbind())))
+                    .call1((py_iter, Self::ellipsis(py)))
+                    .and_then(Self::bytes_extractor);
+                Ok(StreamWaiter::Sync(Some(res)))
             }
         })
+    }
+
+    fn bytes_extractor(res: Bound<PyAny>) -> PyResult<Option<PyBytes>> {
+        if res.is(Self::ellipsis(res.py())) {
+            return Ok(None); // End of stream
+        }
+        res.extract::<PyBytes>().map(Some)
     }
 
     fn get_py_iter<'py>(stream: &Bound<'py, PyAny>, is_async: bool) -> PyResult<Bound<'py, PyAny>> {
@@ -131,13 +133,9 @@ impl BodyStream {
         }
     }
 
-    fn ellipsis(&self, py: Python) -> &Py<PyEllipsis> {
+    fn ellipsis(py: Python<'_>) -> &Py<PyEllipsis> {
         static ONCE_ELLIPSIS: PyOnceLock<Py<PyEllipsis>> = PyOnceLock::new();
         ONCE_ELLIPSIS.get_or_init(py, || PyEllipsis::get(py).into())
-    }
-
-    fn is_end_marker(&self, py: Python, obj: &Py<PyAny>) -> bool {
-        obj.is(self.ellipsis(py))
     }
 
     pub fn try_clone(&self, py: Python) -> PyResult<Self> {
@@ -179,6 +177,6 @@ fn is_async_iter(obj: &Bound<PyAny>) -> PyResult<bool> {
 }
 
 enum StreamWaiter {
-    Async(PyCoroWaiter),
-    Sync(Option<Py<PyAny>>),
+    Async(BytesCoroWaiter),
+    Sync(Option<PyResult<Option<PyBytes>>>),
 }

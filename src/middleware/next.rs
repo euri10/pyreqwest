@@ -1,5 +1,6 @@
 use crate::internal::allow_threads::AllowThreads;
-use crate::internal::asyncio::{PyCoroWaiter, TaskLocal, py_coro_waiter};
+use crate::internal::asyncio_coro::ResponseCoroWaiter;
+use crate::internal::task_local::TaskLocal;
 use crate::request::Request;
 use crate::response::{BaseResponse, Response, SyncResponse};
 use pyo3::coroutine::CancelHandle;
@@ -43,14 +44,7 @@ impl Next {
     pub async fn run_inner(&self, request: &Py<PyAny>, cancel: CancelHandle) -> PyResult<BaseResponse> {
         if let Some(middleware) = self.inner.current_middleware()? {
             let next_waiter = Python::attach(|py| self.call_next(py, middleware, request, cancel))?;
-            let resp = AllowThreads(next_waiter).await?;
-            Python::attach(|py| {
-                resp.into_bound(py)
-                    .cast_into_exact::<Response>()?
-                    .into_super()
-                    .try_borrow_mut()?
-                    .take_inner()
-            })
+            AllowThreads(next_waiter).await
         } else {
             // No more middleware, execute the request
             Request::spawn_request(request, cancel).await
@@ -63,7 +57,7 @@ impl Next {
         middleware: &Py<PyAny>,
         request: &Py<PyAny>,
         cancel: CancelHandle,
-    ) -> PyResult<PyCoroWaiter> {
+    ) -> PyResult<ResponseCoroWaiter> {
         let task_local = self.task_local.clone_ref(py)?;
         let next = Next {
             inner: self.inner.create_next(py)?,
@@ -71,7 +65,17 @@ impl Next {
         };
 
         let coro = middleware.bind(py).call1((request, next))?;
-        py_coro_waiter(coro, &self.task_local, Some(cancel))
+        ResponseCoroWaiter::new(
+            coro,
+            |res| {
+                res.cast_into_exact::<Response>()?
+                    .into_super()
+                    .try_borrow_mut()?
+                    .take_inner()
+            },
+            &self.task_local,
+            Some(cancel),
+        )
     }
 }
 

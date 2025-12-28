@@ -2,8 +2,9 @@ use crate::client::RuntimeHandle;
 use crate::exceptions::{JSONDecodeError, RequestError, StatusError};
 use crate::http::{HeaderMap, Mime};
 use crate::internal::allow_threads::AllowThreads;
-use crate::internal::asyncio::{TaskLocal, py_coro_waiter};
+use crate::internal::asyncio_coro::AnyCoroWaiter;
 use crate::internal::json::{JsonHandler, JsonLoadsContext};
+use crate::internal::task_local::TaskLocal;
 use crate::internal::types::{Extensions, HeaderValue, JsonValue, StatusCode, Version};
 use crate::response::SyncResponseBodyReader;
 use crate::response::internal::{BodyConsumeConfig, BodyReader};
@@ -147,7 +148,7 @@ impl BaseResponse {
                     .as_ref()
                     .ok_or_else(|| PyRuntimeError::new_err("Expected json_handler"))?
                     .call_loads(py, ctx)?;
-                py_coro_waiter(coro, &task_local, Some(cancel))
+                AnyCoroWaiter::new(coro, |res| Ok(res.unbind()), &task_local, Some(cancel))
             })?;
             AllowThreads(coro).await
         } else {

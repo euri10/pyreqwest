@@ -8,7 +8,7 @@ use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyEllipsis, PyList, PyString};
 use pyo3::{IntoPyObjectExt, intern};
 use std::collections::VecDeque;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, MutexGuard};
 
 type Inner = Option<http::HeaderMap>;
 
@@ -297,7 +297,7 @@ impl HeaderMap {
         }
     }
 
-    fn safe_lock(&self) -> PyResult<std::sync::MutexGuard<'_, Inner>> {
+    fn safe_lock(&self) -> PyResult<MutexGuard<'_, Inner>> {
         self.0
             .lock()
             .map_err(|_| PyRuntimeError::new_err("HeaderMap mutex poisoned"))

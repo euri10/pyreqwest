@@ -1,7 +1,9 @@
 pub mod allow_threads;
 pub mod asyncio;
+pub mod asyncio_coro;
 pub mod body_stream;
 pub mod json;
 pub mod module_utils;
+pub mod task_local;
 pub mod types;
 pub mod utils;

@@ -1,5 +1,5 @@
-use crate::internal::asyncio::OnceTaskLocal;
 use crate::internal::body_stream::BodyStream;
+use crate::internal::task_local::OnceTaskLocal;
 use bytes::Bytes;
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
