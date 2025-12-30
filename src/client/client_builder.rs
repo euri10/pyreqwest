@@ -352,14 +352,14 @@ impl BaseClientBuilder {
     } // :NOCOV_END
 }
 impl BaseClientBuilder {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             inner: Some(reqwest::ClientBuilder::new().user_agent(DEFAULT_UA)),
             ..Default::default()
         }
     }
 
-    fn build_client_base(&mut self, py: Python) -> PyResult<BaseClient> {
+    pub fn build_client_base(&mut self, py: Python) -> PyResult<BaseClient> {
         let runtime = match self.runtime.take() {
             Some(runtime) => runtime.try_borrow(py)?.handle().clone(),
             None => RuntimeHandle::global_handle()?.clone(),

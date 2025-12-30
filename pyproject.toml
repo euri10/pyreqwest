@@ -117,6 +117,7 @@ ignore = [
     "D418",
     "COM812",  # Formatter conflict
     "TRY300",
+    "RUF022",  # Explicit ordering for docs
 ]
 
 [tool.ruff.lint.pydocstyle]
@@ -152,7 +153,7 @@ max-args = 8
     "PLC0415",
 ]
 "./tests/bench/*" = ["T201", "EM102", "PLC0415", "TC002"]
-"./examples/*" = ["D104", "T201", "TRY003", "EM101", "PLR2004", "PT017"]
+"./examples/*" = ["D104", "T201", "TRY003", "EM101", "PLR2004", "PT017", "PLC0415"]
 "./scripts/*" = ["INP001", "D100", "S607", "S603", "T201"]
 
 [tool.mypy]

@@ -9,6 +9,8 @@ from pyreqwest.client import ClientBuilder, SyncClientBuilder
 from pyreqwest.pytest_plugin import ClientMocker
 from pyreqwest.request import Request
 from pyreqwest.response import Response, ResponseBuilder
+from pyreqwest.simple.request import pyreqwest_get
+from pyreqwest.simple.sync_request import pyreqwest_get as sync_pyreqwest_get
 
 from tests.servers.server_subprocess import SubprocessServer
 
@@ -920,3 +922,19 @@ def test_sync__streamed_request(client_mocker: ClientMocker) -> None:
     with client.get("http://api.example.invalid/data").body_stream(stream_gen()).build_streamed() as resp:
         assert resp.json() == {"data": "value"}
         assert client_mocker.get_call_count() == 1
+
+
+async def test_simple_request(client_mocker: ClientMocker) -> None:
+    client_mocker.get(path="/api").with_body_text("Hello World")
+
+    resp = await pyreqwest_get("http://example.invalid/api").send()
+    assert resp.status == 200 and await resp.text() == "Hello World"
+    assert client_mocker.get_call_count() == 1
+
+
+def test_sync__simple_request(client_mocker: ClientMocker) -> None:
+    client_mocker.get(path="/api").with_body_text("Hello World")
+
+    resp = sync_pyreqwest_get("http://example.invalid/api").send()
+    assert resp.status == 200 and resp.text() == "Hello World"
+    assert client_mocker.get_call_count() == 1

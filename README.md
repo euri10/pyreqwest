@@ -71,6 +71,42 @@ def example_sync():
 
 Context manager usage is optional, but recommended. Also `close()` methods are available.
 
+#### Mocking in pytest
+
+```python
+from pyreqwest.client import ClientBuilder
+from pyreqwest.pytest_plugin import ClientMocker
+
+async def test_client(client_mocker: ClientMocker) -> None:
+    client_mocker.get(path="/api").with_body_text("Hello Mock")
+
+    async with ClientBuilder().build() as client:
+        response = await client.get("http://example.invalid/api").build().send()
+        assert response.status == 200 and await response.text() == "Hello Mock"
+        assert client_mocker.get_call_count() == 1
+```
+
+Manual mocking is available via `ClientMocker.create_mocker(MonkeyPatch)`.
+
+#### Simple request interface
+
+This is only recommended for simple use-cases such as scripts. Usually, the full client API should be used which reuses
+connections and has other optimizations.
+
+```python
+# Sync example
+from pyreqwest.simple.sync_request import pyreqwest_get
+response = pyreqwest_get("https://httpbun.com/get").query({"q": "val"}).send()
+print(response.json())
+```
+
+```python
+# Async example
+from pyreqwest.simple.request import pyreqwest_get
+response = await pyreqwest_get("https://httpbun.com/get").query({"q": "val"}).send()
+print(await response.json())
+```
+
 ## Documentation
 
 See [docs](https://markussintonen.github.io/pyreqwest/pyreqwest.html)

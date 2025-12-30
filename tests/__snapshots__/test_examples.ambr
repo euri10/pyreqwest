@@ -244,6 +244,22 @@
   
   '''
 # ---
+# name: test_examples[simple-example_simple_async_get]
+  '''
+  
+  # running: example_simple_async_get
+  {'status': 200}
+  
+  '''
+# ---
+# name: test_examples[simple-example_simple_sync_get]
+  '''
+  
+  # running: example_simple_sync_get
+  {'status': 200}
+  
+  '''
+# ---
 # name: test_examples[stream-example_stream_download]
   '''
   

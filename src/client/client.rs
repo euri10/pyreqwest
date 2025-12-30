@@ -73,7 +73,15 @@ impl BaseClient {
         }
     }
 
-    pub fn create_request_builder(
+    pub fn create_async_request_builder(&self, method: Method, url: Bound<PyAny>) -> PyResult<BaseRequestBuilder> {
+        self.create_request_builder(method, url, false)
+    }
+
+    pub fn create_sync_request_builder(&self, method: Method, url: Bound<PyAny>) -> PyResult<BaseRequestBuilder> {
+        self.create_request_builder(method, url, true)
+    }
+
+    fn create_request_builder(
         &self,
         method: Method,
         url: Bound<PyAny>,
@@ -124,12 +132,16 @@ impl BaseClient {
             .map(|middlewares| NextInner::new(middlewares.clone()))
             .transpose()
     }
+
+    pub fn close(&self) {
+        self.close_cancellation.cancel();
+    }
 }
 
 #[pymethods]
 impl Client {
     pub fn request(slf: PyRef<Self>, method: Method, url: Bound<PyAny>) -> PyResult<Py<RequestBuilder>> {
-        let builder = slf.as_super().create_request_builder(method, url, false)?;
+        let builder = slf.as_super().create_async_request_builder(method, url)?;
         RequestBuilder::new_py(slf.py(), builder)
     }
 
@@ -173,7 +185,7 @@ impl Client {
     async fn close(slf: Py<Self>) -> PyResult<()> {
         // Currently, does not wait for resources to be released.
         Python::attach(|py| {
-            slf.bind(py).as_super().try_borrow()?.close_cancellation.cancel();
+            slf.bind(py).as_super().get().close();
             Ok(())
         })
     }
@@ -187,7 +199,7 @@ impl Client {
 #[pymethods]
 impl SyncClient {
     pub fn request(slf: PyRef<Self>, method: Method, url: Bound<PyAny>) -> PyResult<Py<SyncRequestBuilder>> {
-        let builder = slf.as_super().create_request_builder(method, url, true)?;
+        let builder = slf.as_super().create_sync_request_builder(method, url)?;
         SyncRequestBuilder::new_py(slf.py(), builder)
     }
 
@@ -224,7 +236,7 @@ impl SyncClient {
     }
 
     fn close(slf: PyRef<Self>) {
-        slf.as_super().close_cancellation.cancel();
+        slf.as_super().close();
     }
 }
 impl SyncClient {

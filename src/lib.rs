@@ -12,6 +12,8 @@ mod response;
 use pyo3::prelude::*;
 
 use crate::internal::module_utils::{register_collections_abc, register_submodule};
+use crate::internal::types::Method;
+use crate::request::{OneOffRequestBuilder, SyncOneOffRequestBuilder};
 
 #[pymodule(name = "_pyreqwest", gil_used = false)]
 mod pyreqwest {
@@ -40,8 +42,8 @@ mod pyreqwest {
         use super::*;
         #[pymodule_export]
         use crate::request::{
-            BaseRequestBuilder, ConsumedRequest, Request, RequestBody, RequestBuilder, StreamRequest,
-            SyncConsumedRequest, SyncRequestBuilder, SyncStreamRequest,
+            BaseRequestBuilder, ConsumedRequest, OneOffRequestBuilder, Request, RequestBody, RequestBuilder,
+            StreamRequest, SyncConsumedRequest, SyncOneOffRequestBuilder, SyncRequestBuilder, SyncStreamRequest,
         };
         #[pymodule_init]
         fn init(module: &Bound<'_, PyModule>) -> PyResult<()> {
@@ -130,6 +132,32 @@ mod pyreqwest {
         fn init(module: &Bound<'_, PyModule>) -> PyResult<()> {
             register_collections_abc::<PyBytes>(module.py(), "Buffer")?;
             register_submodule(module, "bytes")
+        }
+    }
+
+    #[pymodule]
+    mod simple {
+        use super::*;
+        #[pymodule]
+        mod request {
+            use super::*;
+            impl_oneoff_functions!(OneOffRequestBuilder);
+            #[pymodule_init]
+            fn init(module: &Bound<'_, PyModule>) -> PyResult<()> {
+                register_oneoff_functions!(module);
+                register_submodule(module, "simple.request")
+            }
+        }
+
+        #[pymodule]
+        mod sync_request {
+            use super::*;
+            impl_oneoff_functions!(SyncOneOffRequestBuilder);
+            #[pymodule_init]
+            fn init(module: &Bound<'_, PyModule>) -> PyResult<()> {
+                register_oneoff_functions!(module);
+                register_submodule(module, "simple.sync_request")
+            }
         }
     }
 }

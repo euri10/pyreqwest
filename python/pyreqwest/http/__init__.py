@@ -9,7 +9,7 @@ from pyreqwest._pyreqwest.http import (
     Url,
 )
 
-__all__ = [  # noqa: RUF022
+__all__ = [
     "Url",
     "HeaderMap",
     "Mime",

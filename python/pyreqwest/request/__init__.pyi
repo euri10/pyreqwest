@@ -182,7 +182,7 @@ class RequestBuilder(BaseRequestBuilder):
         """Set streaming request body."""
 
     def with_middleware(self, middleware: Middleware) -> Self:
-        """Register a middleware component (added after client level middlewares, executed in chain order)."""
+        """Use a middleware component (added after client level middlewares, executed in chain order)."""
 
 class SyncRequestBuilder(BaseRequestBuilder):
     """Synchronous request builder. Use `build()` or `build_streamed()` to create the request to send."""
@@ -197,4 +197,22 @@ class SyncRequestBuilder(BaseRequestBuilder):
         """Set streaming request body."""
 
     def with_middleware(self, middleware: SyncMiddleware) -> Self:
-        """Register a middleware component (added after client level middlewares, executed in chain order)."""
+        """Use a middleware component (added after client level middlewares, executed in chain order)."""
+
+class OneOffRequestBuilder(BaseRequestBuilder):
+    """One-off request builder. Use `send()` to execute the request."""
+
+    async def send(self) -> Response:
+        """Execute the request returning a Response with fully read response body."""
+
+    def with_middleware(self, middleware: Middleware) -> Self:
+        """Use a middleware component."""
+
+class SyncOneOffRequestBuilder(BaseRequestBuilder):
+    """Synchronous one-off request builder. Use `send()` to execute the request."""
+
+    def send(self) -> SyncResponse:
+        """Execute the request returning a Response with fully read response body."""
+
+    def with_middleware(self, middleware: SyncMiddleware) -> Self:
+        """Use a middleware component."""

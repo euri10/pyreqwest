@@ -20,7 +20,15 @@ from pyreqwest.pytest_plugin.types import (
     QueryMatcher,
     UrlMatcher,
 )
-from pyreqwest.request import BaseRequestBuilder, Request, RequestBody, RequestBuilder, SyncRequestBuilder
+from pyreqwest.request import (
+    BaseRequestBuilder,
+    OneOffRequestBuilder,
+    Request,
+    RequestBody,
+    RequestBuilder,
+    SyncOneOffRequestBuilder,
+    SyncRequestBuilder,
+)
 from pyreqwest.response import BaseResponse, Response, ResponseBuilder, SyncResponse
 from pyreqwest.types import HeadersType
 
@@ -383,8 +391,19 @@ class ClientMocker:
             monkeypatch.setattr(klass, "build", lambda slf: build_patch(slf, orig_build_consumed))
             monkeypatch.setattr(klass, "build_streamed", lambda slf: build_patch(slf, orig_build_streamed))
 
+        def setup_oneoff(klass: type[BaseRequestBuilder], *, is_async: bool) -> None:
+            orig_send = klass.send  # type: ignore[attr-defined]
+
+            def send_patch(self: BaseRequestBuilder) -> Any:
+                middleware = mocker._create_middleware() if is_async else mocker._create_sync_middleware()
+                return orig_send(self.with_middleware(middleware))  # type: ignore[attr-defined]
+
+            monkeypatch.setattr(klass, "send", send_patch)
+
         setup(RequestBuilder, is_async=True)
         setup(SyncRequestBuilder, is_async=False)
+        setup_oneoff(OneOffRequestBuilder, is_async=True)
+        setup_oneoff(SyncOneOffRequestBuilder, is_async=False)
 
         return mocker
 

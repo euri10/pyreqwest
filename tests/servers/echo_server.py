@@ -40,7 +40,10 @@ class EchoServer:
                 "time": datetime.now(UTC).isoformat(),
             }
             resp_body = json_dump(resp)
-            resp_headers = [[b"content-type", b"application/json"]]
+            resp_headers = [
+                [b"content-type", b"application/json"],
+                [b"x-request-method", scope["method"].encode()],
+            ]
 
         if query_dict.get("compress") in ("gzip", "gzip_invalid"):
             resp_body = gzip.compress(resp_body)
