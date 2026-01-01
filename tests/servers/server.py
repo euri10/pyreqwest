@@ -19,6 +19,8 @@ from granian.server.embed import Server as GranianServer
 from pyreqwest.client import ClientBuilder
 from pyreqwest.http import Url
 
+from tests.utils import wait_for
+
 
 @dataclass(kw_only=True, frozen=True)
 class ServerConfig:
@@ -132,7 +134,6 @@ async def receive_all(receive: Callable[[], Awaitable[dict[str, Any]]]) -> Async
 
 
 async def wait_for_server(url: Url, ca_pem: bytes | None, success_timeout: timedelta = timedelta(seconds=10)) -> None:
-    deadline = time.monotonic() + success_timeout.total_seconds()
     if url.scheme == "https":
         assert ca_pem
 
@@ -141,12 +142,4 @@ async def wait_for_server(url: Url, ca_pem: bytes | None, success_timeout: timed
         builder = builder.add_root_certificate_pem(ca_pem)
 
     async with builder.build() as client:
-        while True:
-            try:
-                await client.get(url).build().send()
-                return
-            except Exception as exc:
-                if time.monotonic() > deadline:
-                    print(exc)
-                    raise
-                await asyncio.sleep(0.1)
+        await wait_for(lambda: client.get(url).build().send(), success_timeout)

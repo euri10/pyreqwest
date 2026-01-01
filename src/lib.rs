@@ -3,6 +3,7 @@ mod cookie;
 mod exceptions;
 mod http;
 mod internal;
+mod logging;
 mod middleware;
 mod multipart;
 mod proxy;
@@ -158,6 +159,17 @@ mod pyreqwest {
                 register_oneoff_functions!(module);
                 register_submodule(module, "simple.sync_request")
             }
+        }
+    }
+
+    #[pymodule]
+    mod logging {
+        use super::*;
+        #[pymodule_export]
+        use crate::logging::logger::flush_logs;
+        #[pymodule_init]
+        fn init(module: &Bound<'_, PyModule>) -> PyResult<()> {
+            register_submodule(module, "logging")
         }
     }
 }

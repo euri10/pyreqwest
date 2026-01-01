@@ -8,6 +8,7 @@ use crate::exceptions::BuilderError;
 use crate::http::{HeaderMap, Url, UrlType};
 use crate::internal::asyncio::is_async_callable;
 use crate::internal::json::JsonHandler;
+use crate::logging::logger::init_verbose_logging;
 use crate::proxy::ProxyBuilder;
 use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
@@ -36,6 +37,7 @@ pub struct BaseClientBuilder {
     default_headers: Option<HeaderMap>,
     runtime: Option<Py<Runtime>>,
     base_url: Option<Url>,
+    connection_verbose: bool,
 }
 
 #[pyclass(extends=BaseClientBuilder)]
@@ -150,6 +152,11 @@ impl BaseClientBuilder {
 
     fn pool_max_idle_per_host(slf: PyRefMut<Self>, max_idle: usize) -> PyResult<PyRefMut<Self>> {
         Self::apply(slf, |builder| Ok(builder.pool_max_idle_per_host(max_idle)))
+    }
+
+    fn connection_verbose(mut slf: PyRefMut<Self>, enable: bool) -> PyResult<PyRefMut<Self>> {
+        slf.connection_verbose = enable;
+        Self::apply(slf, |builder| Ok(builder.connection_verbose(enable)))
     }
 
     fn http1_lower_case_headers(mut slf: PyRefMut<Self>) -> PyResult<PyRefMut<Self>> {
@@ -375,6 +382,9 @@ impl BaseClientBuilder {
             if !self.http1_lower_case_headers {
                 inner_builder = inner_builder.http1_title_case_headers();
             }
+            if self.connection_verbose {
+                init_verbose_logging()?;
+            }
 
             let client = BaseClient::new(
                 inner_builder
@@ -389,6 +399,7 @@ impl BaseClientBuilder {
                 self.error_for_status,
                 self.default_headers.take(),
                 self.base_url.take(),
+                self.connection_verbose,
             );
             Ok(client)
         })

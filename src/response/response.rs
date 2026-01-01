@@ -1,4 +1,5 @@
 use crate::client::RuntimeHandle;
+use crate::client::internal::SpawnedRequestPermit;
 use crate::exceptions::{JSONDecodeError, RequestError, StatusError};
 use crate::http::{HeaderMap, Mime};
 use crate::internal::allow_threads::AllowThreads;
@@ -18,7 +19,6 @@ use pyo3::types::PyDict;
 use pyo3::{PyTraverseError, PyVisit};
 use pyo3_bytes::PyBytes;
 use serde_json::json;
-use tokio::sync::OwnedSemaphorePermit;
 
 #[pyclass(subclass)]
 pub struct BaseResponse(Option<Inner>);
@@ -177,7 +177,7 @@ impl BaseResponse {
 impl BaseResponse {
     pub async fn initialize(
         response: reqwest::Response,
-        request_semaphore_permit: Option<OwnedSemaphorePermit>,
+        request_semaphore_permit: Option<SpawnedRequestPermit>,
         consume_body: BodyConsumeConfig,
         runtime: RuntimeHandle,
         json_handler: Option<JsonHandler>,

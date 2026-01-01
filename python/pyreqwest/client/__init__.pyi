@@ -176,6 +176,14 @@ class BaseClientBuilder:
     def pool_max_idle_per_host(self, max_idle: int) -> Self:
         """Sets the maximum idle connection per host allowed in the pool."""
 
+    def connection_verbose(self, enable: bool) -> Self:
+        """Set whether connections should emit verbose logs. This should be used for debugging only.
+
+        Enabling this option will emit log messages at the Debug level for read and write operations on connections.
+        Note that logs are flushed to Python logging handling when request finishes or client closes. Logs can be
+        manually flushed by calling `pyreqwest.logging.flush_logs`.
+        """
+
     def http1_lower_case_headers(self) -> Self:
         """Send headers as lowercase instead of title case. Default is false.
 

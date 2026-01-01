@@ -32,6 +32,7 @@ pub struct BaseRequestBuilder {
     middlewares_next: Option<NextInner>,
     json_handler: Option<JsonHandler>,
     error_for_status: bool,
+    connection_verbose: bool,
     streamed_read_buffer_limit: Option<usize>,
     is_blocking: bool,
 }
@@ -313,6 +314,7 @@ impl BaseRequestBuilder {
         middlewares_next: Option<NextInner>,
         json_handler: Option<JsonHandler>,
         error_for_status: bool,
+        connection_verbose: bool,
         is_blocking: bool,
     ) -> Self {
         BaseRequestBuilder {
@@ -323,6 +325,7 @@ impl BaseRequestBuilder {
             middlewares_next,
             json_handler,
             error_for_status,
+            connection_verbose,
             streamed_read_buffer_limit: None,
             is_blocking,
         }
@@ -350,6 +353,7 @@ impl BaseRequestBuilder {
             body_consume_config: consume_body,
             json_handler: self.json_handler.take(),
             error_for_status: self.error_for_status,
+            connection_verbose: self.connection_verbose,
         };
         Ok(Request::new(request_data, self.body.take(), self.middlewares_next.take()))
     }

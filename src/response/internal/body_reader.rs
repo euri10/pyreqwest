@@ -1,4 +1,5 @@
 use crate::client::RuntimeHandle;
+use crate::client::internal::SpawnedRequestPermit;
 use crate::exceptions::utils::map_read_error;
 use bytes::{Bytes, BytesMut};
 use futures_util::FutureExt;
@@ -8,7 +9,6 @@ use pyo3::coroutine::CancelHandle;
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::exceptions::asyncio::CancelledError;
 use std::collections::VecDeque;
-use tokio::sync::OwnedSemaphorePermit;
 use tokio_util::sync::CancellationToken;
 
 pub const DEFAULT_READ_BUFFER_LIMIT: usize = 65536;
@@ -24,7 +24,7 @@ pub struct BodyReader {
 impl BodyReader {
     pub async fn initialize(
         mut response: reqwest::Response,
-        mut request_semaphore_permit: Option<OwnedSemaphorePermit>,
+        mut request_permit: Option<SpawnedRequestPermit>,
         read_config: BodyConsumeConfig,
         runtime: RuntimeHandle,
     ) -> PyResult<(Self, http::response::Parts)> {
@@ -39,17 +39,14 @@ impl BodyReader {
         let mut body_receiver: Option<Receiver> = None;
         if let Some(buffer_limit) = buffer_limit {
             if has_more {
-                body_receiver =
-                    Some(Reader::start(body, request_semaphore_permit.take(), buffer_limit, runtime.clone()));
+                body_receiver = Some(Reader::start(body, request_permit.take(), buffer_limit, runtime.clone()));
             }
         } else {
             assert!(!has_more, "Should have fully consumed the response");
         }
 
-        if body_receiver.is_none()
-            && let Some(a) = request_semaphore_permit.take()
-        {
-            drop(a) // No more body to read, release the semaphore permit
+        if body_receiver.is_none() {
+            drop(request_permit.take()) // No more body to read, release the request permit
         }
 
         let body_reader = BodyReader {
@@ -225,7 +222,7 @@ struct Reader {
 impl Reader {
     fn start(
         mut body: reqwest::Body,
-        mut request_semaphore_permit: Option<OwnedSemaphorePermit>,
+        mut request_permit: Option<SpawnedRequestPermit>,
         buffer_size: usize,
         runtime: RuntimeHandle,
     ) -> Receiver {
@@ -269,7 +266,7 @@ impl Reader {
                 _ = close_token_child.cancelled() => {}
             }
 
-            _ = request_semaphore_permit.take();
+            drop(request_permit.take());
         });
 
         Receiver { rx, close_token }

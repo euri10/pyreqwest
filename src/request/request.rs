@@ -371,6 +371,7 @@ pub struct RequestData {
     pub body_consume_config: BodyConsumeConfig,
     pub json_handler: Option<JsonHandler>,
     pub error_for_status: bool,
+    pub connection_verbose: bool,
 }
 impl RequestData {
     fn try_clone(&self, py: Python) -> PyResult<Self> {
@@ -386,6 +387,7 @@ impl RequestData {
             body_consume_config: self.body_consume_config,
             json_handler: self.json_handler.as_ref().map(|v| v.clone_ref(py)),
             error_for_status: self.error_for_status,
+            connection_verbose: self.connection_verbose,
         })
     }
 }

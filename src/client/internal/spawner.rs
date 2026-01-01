@@ -2,6 +2,7 @@ use crate::client::internal::ConnectionLimiter;
 use crate::client::runtime;
 use crate::exceptions::utils::map_send_error;
 use crate::exceptions::{ClientClosedError, PoolTimeoutError};
+use crate::logging::logger::flush_logs_no_gil;
 use crate::request::RequestData;
 use crate::response::BaseResponse;
 use pyo3::coroutine::CancelHandle;
@@ -37,9 +38,13 @@ impl Spawner {
         let runtime = spawner.runtime.clone();
 
         let fut = async move {
-            let permit = match connection_limiter.as_ref() {
+            let limiter_permit = match connection_limiter.as_ref() {
                 Some(lim) => Some(Self::limit_connections(lim, &mut request.reqwest).await?),
                 _ => None,
+            };
+            let request_permit = SpawnedRequestPermit {
+                request_semaphore_permit: limiter_permit,
+                connection_verbose: request.connection_verbose,
             };
 
             let mut resp = client.execute(request.reqwest).await.map_err(map_send_error)?;
@@ -50,7 +55,7 @@ impl Spawner {
 
             BaseResponse::initialize(
                 resp,
-                permit,
+                Some(request_permit),
                 request.body_consume_config,
                 runtime,
                 request.json_handler,
@@ -103,6 +108,20 @@ impl Clone for Spawner {
             runtime: self.runtime.clone(),
             connection_limiter: self.connection_limiter.clone(),
             close_cancellation: self.close_cancellation.child_token(),
+        }
+    }
+}
+
+pub struct SpawnedRequestPermit {
+    request_semaphore_permit: Option<OwnedSemaphorePermit>,
+    connection_verbose: bool,
+}
+impl Drop for SpawnedRequestPermit {
+    fn drop(&mut self) {
+        let _ = self.request_semaphore_permit.take();
+
+        if self.connection_verbose {
+            let _ = flush_logs_no_gil();
         }
     }
 }

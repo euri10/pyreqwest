@@ -1005,6 +1005,7 @@ dependencies = [
  "http",
  "http-body-util",
  "hyper",
+ "log",
  "mime",
  "pin-project",
  "pyo3",

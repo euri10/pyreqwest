@@ -4,6 +4,7 @@ use crate::client::runtime::RuntimeHandle;
 use crate::http::{HeaderMap, Url, UrlType};
 use crate::internal::json::JsonHandler;
 use crate::internal::types::Method;
+use crate::logging::logger::flush_logs;
 use crate::middleware::NextInner;
 use crate::request::{BaseRequestBuilder, RequestBuilder, SyncRequestBuilder};
 use pyo3::prelude::*;
@@ -23,6 +24,7 @@ pub struct BaseClient {
     connection_limiter: Option<ConnectionLimiter>,
     error_for_status: bool,
     default_headers: Option<HeaderMap>,
+    connection_verbose: bool,
     close_cancellation: CancellationToken,
 }
 
@@ -58,6 +60,7 @@ impl BaseClient {
         error_for_status: bool,
         default_headers: Option<HeaderMap>,
         base_url: Option<Url>,
+        connection_verbose: bool,
     ) -> Self {
         BaseClient {
             client,
@@ -69,6 +72,7 @@ impl BaseClient {
             error_for_status,
             default_headers,
             base_url,
+            connection_verbose,
             close_cancellation: CancellationToken::new(),
         }
     }
@@ -112,6 +116,7 @@ impl BaseClient {
                 middlewares_next,
                 json_handler,
                 self.error_for_status,
+                self.connection_verbose,
                 is_blocking,
             );
 
@@ -133,8 +138,11 @@ impl BaseClient {
             .transpose()
     }
 
-    pub fn close(&self) {
+    pub fn close(&self, py: Python) {
         self.close_cancellation.cancel();
+        if self.connection_verbose {
+            let _ = flush_logs(py);
+        }
     }
 }
 
@@ -185,7 +193,7 @@ impl Client {
     async fn close(slf: Py<Self>) -> PyResult<()> {
         // Currently, does not wait for resources to be released.
         Python::attach(|py| {
-            slf.bind(py).as_super().get().close();
+            slf.bind(py).as_super().get().close(py);
             Ok(())
         })
     }
@@ -236,7 +244,7 @@ impl SyncClient {
     }
 
     fn close(slf: PyRef<Self>) {
-        slf.as_super().close();
+        slf.as_super().close(slf.py());
     }
 }
 impl SyncClient {
