@@ -1,16 +1,16 @@
 import importlib
-import time
-from collections.abc import Generator
+from collections.abc import AsyncGenerator
 from pathlib import Path
 
 import docker
 import pytest
 from docker.models.containers import Container
+from pyreqwest.client import ClientBuilder
 from pyreqwest.http import Url
 from syrupy import SnapshotAssertion  # type: ignore[attr-defined]
 
 from examples._utils import CallableExample, collect_examples, run_example
-from tests.utils import IS_CI, IS_OSX, IS_WINDOWS
+from tests.utils import IS_CI, IS_OSX, IS_WINDOWS, wait_for
 
 EXAMPLE_FUNCS: list[tuple[str, CallableExample]] = [
     (p.stem, func)
@@ -18,11 +18,12 @@ EXAMPLE_FUNCS: list[tuple[str, CallableExample]] = [
     if p.suffix == ".py" and not p.name.startswith("_")
     for func in collect_examples(importlib.import_module(f"examples.{p.stem}"))
 ]
+assert EXAMPLE_FUNCS
 HTTPBIN_CONTAINER = "httpbin-test-runner"
 
 
 @pytest.fixture(scope="session")
-def httpbin() -> Generator[Url, None, None]:
+async def httpbin() -> AsyncGenerator[Url, None]:
     # Start Go httpbin server in docker
     client = docker.from_env()
 
@@ -38,18 +39,19 @@ def httpbin() -> Generator[Url, None, None]:
     )
     assert isinstance(container, Container)
 
-    deadline = time.time() + 10
-    host_port = None
-
-    while time.time() < deadline and not host_port:
+    async def container_url() -> Url:
         container.reload()
         host_port = container.ports.get("8080/tcp", [{}])[0].get("HostPort")
-        if not host_port:
-            time.sleep(0.1)
+        assert host_port
+        url = Url(f"http://localhost:{host_port}")
 
-    assert host_port, "container did not start in time"
+        async with ClientBuilder().build() as client:
+            assert (await client.get(url / "get").build().send()).status == 200
+
+        return url
+
     try:
-        yield Url(f"http://localhost:{host_port}")
+        yield await wait_for(container_url)
     finally:
         container.remove(v=True, force=True)
 

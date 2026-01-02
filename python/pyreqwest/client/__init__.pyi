@@ -268,14 +268,8 @@ class BaseClientBuilder:
     def add_crl_pem(self, cert: bytes) -> Self:
         """Add a certificate revocation list from PEM data."""
 
-    def tls_built_in_root_certs(self, enable: bool) -> Self:
-        """Toggle built-in root cert usage. Defaults to true - built-in system certs will be used."""
-
     def identity_pem(self, buf: bytes) -> Self:
         """Sets the identity to be used for client certificate authentication."""
-
-    def danger_accept_invalid_hostnames(self, enable: bool) -> Self:
-        """Disable hostname verification (INSECURE). Defaults to false."""
 
     def danger_accept_invalid_certs(self, enable: bool) -> Self:
         """Disable certificate validation (INSECURE). Defaults to false."""

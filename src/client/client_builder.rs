@@ -296,20 +296,12 @@ impl BaseClientBuilder {
         })
     }
 
-    fn tls_built_in_root_certs(slf: PyRefMut<Self>, enable: bool) -> PyResult<PyRefMut<Self>> {
-        Self::apply(slf, |builder| Ok(builder.tls_built_in_root_certs(enable)))
-    }
-
     fn identity_pem(slf: PyRefMut<Self>, buf: PyBytes) -> PyResult<PyRefMut<Self>> {
         Self::apply(slf, |builder| {
             let identity =
                 reqwest::Identity::from_pem(buf.as_slice()).map_err(|e| PyValueError::new_err(e.to_string()))?;
             Ok(builder.identity(identity))
         })
-    }
-
-    fn danger_accept_invalid_hostnames(slf: PyRefMut<Self>, enable: bool) -> PyResult<PyRefMut<Self>> {
-        Self::apply(slf, |builder| Ok(builder.danger_accept_invalid_hostnames(enable)))
     }
 
     fn danger_accept_invalid_certs(slf: PyRefMut<Self>, enable: bool) -> PyResult<PyRefMut<Self>> {
@@ -377,7 +369,7 @@ impl BaseClientBuilder {
                 .inner
                 .take()
                 .ok_or_else(|| PyRuntimeError::new_err("Client was already built"))?
-                .use_rustls_tls();
+                .tls_backend_rustls();
 
             if !self.http1_lower_case_headers {
                 inner_builder = inner_builder.http1_title_case_headers();

@@ -443,8 +443,6 @@ async def test_various_builder_functions(
         .tcp_keepalive(timedelta(seconds=1))
         .tcp_keepalive_interval(timedelta(seconds=1))
         .tcp_keepalive_retries(1)
-        .tls_built_in_root_certs(True)
-        .danger_accept_invalid_hostnames(True)
         .tls_sni(True)
         .min_tls_version("TLSv1.0")
         .max_tls_version("TLSv1.3")
