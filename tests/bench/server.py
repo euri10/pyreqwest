@@ -1,6 +1,7 @@
 import ssl
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from dataclasses import dataclass
 from pathlib import Path
 
 import trustme
@@ -11,10 +12,19 @@ from tests.servers.echo_server import EchoServer
 from tests.servers.server import EmbeddedServer, ServerConfig, find_free_port
 
 
+@dataclass(kw_only=True, frozen=True, slots=True)
+class CaCert:
+    pem: bytes
+    der: bytes
+
+
 @asynccontextmanager
-async def server() -> AsyncGenerator[tuple[Url, bytes], None]:
+async def server() -> AsyncGenerator[tuple[Url, CaCert], None]:
     ca = trustme.CA()
-    cert_der = ssl.PEM_cert_to_DER_cert(ca.cert_pem.bytes().decode())
+    ca_cert = CaCert(
+        pem=ca.cert_pem.bytes(),
+        der=ssl.PEM_cert_to_DER_cert(ca.cert_pem.bytes().decode()),
+    )
     cert = ca.issue_cert("127.0.0.1", "localhost")
     with (
         cert.cert_chain_pems[0].tempfile() as cert_tmp,
@@ -25,4 +35,4 @@ async def server() -> AsyncGenerator[tuple[Url, bytes], None]:
         port = find_free_port()
 
         async with EmbeddedServer(EchoServer(), port, config).serve_context() as echo_server:
-            yield echo_server.url, cert_der
+            yield echo_server.url, ca_cert

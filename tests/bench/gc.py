@@ -5,12 +5,12 @@ import gc
 from pyreqwest.http import Url
 
 from tests.bench.runner import Runner
-from tests.bench.server import server
+from tests.bench.server import CaCert, server
 from tests.bench.utils import fmt_size
 
 
 class PerformanceGcPressure:
-    def __init__(self, server_url: Url, lib: str, trust_cert_der: bytes) -> None:
+    def __init__(self, server_url: Url, lib: str, ca_cert: CaCert) -> None:
         self.url = server_url.with_query({"echo_only_body": "1"})
         self.lib = lib
         self.body_sizes = [
@@ -22,7 +22,7 @@ class PerformanceGcPressure:
         self.concurrency_levels = [2, 10]
         self.runner = Runner(
             self.url,
-            trust_cert_der,
+            ca_cert,
             big_body_limit=1_000_000,
             big_body_chunk_size=1024 * 1024,
             num_requests=100,
@@ -69,8 +69,8 @@ async def main() -> None:
 
     args = parser.parse_args()
 
-    async with server() as (url, trust_cert_der):
-        benchmark = PerformanceGcPressure(url, args.lib, trust_cert_der)
+    async with server() as (url, ca_cert):
+        benchmark = PerformanceGcPressure(url, args.lib, ca_cert)
         await benchmark.run_benchmarks()
 
 

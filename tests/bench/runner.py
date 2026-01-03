@@ -7,6 +7,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pyreqwest.client import ClientBuilder, SyncClientBuilder
 from pyreqwest.http import Url
 
+from tests.bench.server import CaCert
 from tests.bench.utils import fmt_size
 
 
@@ -14,7 +15,7 @@ class Runner:
     def __init__(
         self,
         url: Url,
-        trust_cert_der: bytes,
+        ca_cert: CaCert,
         *,
         big_body_limit: int,
         big_body_chunk_size: int,
@@ -23,14 +24,14 @@ class Runner:
         iterations: int,
     ) -> None:
         self.url = url
-        self.trust_cert_der = trust_cert_der
+        self.ca_cert = ca_cert
         self.big_body_limit = big_body_limit
         self.big_body_chunk_size = big_body_chunk_size
         self.num_requests = num_requests
         self.warmup_iterations = warmup_iterations
         self.iterations = iterations
 
-    async def run_lib(self, lib: str, body: bytes, concurrency: int) -> list[float]:
+    async def run_lib(self, lib: str, body: bytes, concurrency: int) -> list[float]:  # noqa: PLR0911
         if lib == "pyreqwest":
             return await self.run_pyreqwest_concurrent(body, concurrency)
         if lib == "pyreqwest_sync":
@@ -43,6 +44,8 @@ class Runner:
             return self.run_urllib3_concurrent(body, concurrency)
         if lib == "rnet":
             return await self.run_rnet_concurrent(body, concurrency)
+        if lib == "niquests":
+            return await self.run_niquests_concurrent(body, concurrency)
         raise ValueError(f"Unsupported comparison library: {lib}")
 
     async def meas_concurrent_batch(
@@ -91,7 +94,7 @@ class Runner:
             yield part
 
     async def run_pyreqwest_concurrent(self, body: bytes, concurrency: int) -> list[float]:
-        async with ClientBuilder().add_root_certificate_der(self.trust_cert_der).https_only(True).build() as client:
+        async with ClientBuilder().add_root_certificate_der(self.ca_cert.der).https_only(True).build() as client:
             if len(body) <= self.big_body_limit:
 
                 async def post_read() -> None:
@@ -116,7 +119,7 @@ class Runner:
             return await self.meas_concurrent_batch(post_read, len(body), concurrency)
 
     def run_sync_pyreqwest_concurrent(self, body: bytes, concurrency: int) -> list[float]:
-        with SyncClientBuilder().add_root_certificate_der(self.trust_cert_der).https_only(True).build() as client:
+        with SyncClientBuilder().add_root_certificate_der(self.ca_cert.der).https_only(True).build() as client:
             if len(body) <= self.big_body_limit:
 
                 def post_read() -> None:
@@ -144,7 +147,7 @@ class Runner:
         import aiohttp
 
         url_str = str(self.url)
-        ssl_ctx = ssl.create_default_context(cadata=self.trust_cert_der)
+        ssl_ctx = ssl.create_default_context(cadata=self.ca_cert.der)
 
         async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=ssl_ctx, limit=concurrency)) as session:
             if len(body) <= self.big_body_limit:
@@ -169,7 +172,7 @@ class Runner:
         import httpx
 
         url_str = str(self.url)
-        ssl_ctx = ssl.create_default_context(cadata=self.trust_cert_der)
+        ssl_ctx = ssl.create_default_context(cadata=self.ca_cert.der)
 
         async with httpx.AsyncClient(verify=ssl_ctx, limits=httpx.Limits(max_connections=concurrency)) as client:
             if len(body) <= self.big_body_limit:
@@ -194,7 +197,7 @@ class Runner:
         import urllib3
 
         url_str = str(self.url)
-        ssl_ctx = ssl.create_default_context(cadata=self.trust_cert_der)
+        ssl_ctx = ssl.create_default_context(cadata=self.ca_cert.der)
 
         with urllib3.PoolManager(maxsize=concurrency, ssl_context=ssl_ctx) as pool:
             if len(body) <= self.big_body_limit:
@@ -247,3 +250,33 @@ class Runner:
         res = await self.meas_concurrent_batch(post_read, len(body), concurrency)
         del client
         return res
+
+    async def run_niquests_concurrent(self, body: bytes, concurrency: int) -> list[float]:
+        import niquests
+
+        url_str = str(self.url)
+        async with niquests.AsyncSession(pool_connections=concurrency, pool_maxsize=concurrency) as client:
+            client.verify = self.ca_cert.pem
+
+            if len(body) <= self.big_body_limit:
+
+                async def post_read() -> None:
+                    response = await client.post(url_str, data=body)
+                    assert isinstance(response, niquests.Response)  # niquests is weird...
+                    assert response.status_code == 200
+                    assert len(response.content or b"") == len(body)
+                    response.close()
+            else:
+                chunks = self.body_parts_chunks(body)
+
+                async def post_read() -> None:
+                    response = await client.post(url_str, data=self.body_parts_stream(chunks), stream=True)
+                    assert isinstance(response, niquests.AsyncResponse)  # niquests is weird...
+                    assert response.status_code == 200
+                    tot = 0
+                    resp_iter = await response.iter_raw(self.big_body_chunk_size)
+                    async for chunk in resp_iter:
+                        tot += len(chunk)
+                    assert tot == len(body)
+
+            return await self.meas_concurrent_batch(post_read, len(body), concurrency)

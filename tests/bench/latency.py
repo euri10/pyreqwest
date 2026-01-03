@@ -5,12 +5,12 @@ import statistics
 from pyreqwest.http import Url
 
 from tests.bench.runner import Runner
-from tests.bench.server import server
+from tests.bench.server import CaCert, server
 from tests.bench.utils import StatsCollection, fmt_size, is_sync
 
 
 class PerformanceLatency:
-    def __init__(self, server_url: Url, lib: str, trust_cert_der: bytes) -> None:
+    def __init__(self, server_url: Url, lib: str, ca_cert: CaCert) -> None:
         self.lib = lib
         self.body_sizes = [
             5_000_000,  # 5MB
@@ -21,7 +21,7 @@ class PerformanceLatency:
         self.concurrency_levels = [20, 5, 2] if is_sync(lib) else [100, 10, 2]
         self.runner = Runner(
             url=server_url.with_query({"echo_only_body": "1"}),
-            trust_cert_der=trust_cert_der,
+            ca_cert=ca_cert,
             big_body_limit=1_000_000,
             big_body_chunk_size=1024 * 1024,
             num_requests=100,
@@ -50,8 +50,8 @@ async def main() -> None:
     parser.add_argument("--lib", type=str)
     args = parser.parse_args()
 
-    async with server() as (url, trust_cert_der):
-        await PerformanceLatency(url, args.lib, trust_cert_der).run_benchmarks()
+    async with server() as (url, ca_cert):
+        await PerformanceLatency(url, args.lib, ca_cert).run_benchmarks()
 
 
 if __name__ == "__main__":

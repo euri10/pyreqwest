@@ -24,6 +24,12 @@
     <img width="1200" alt="rnet" src="https://raw.githubusercontent.com/MarkusSintonen/pyreqwest/refs/heads/main/tests/bench/benchmark_rnet.png" />
 </p>
 
+### Compared to [niquests](https://github.com/jawah/niquests) (async)
+
+<p align="center">
+    <img width="1200" alt="rnet" src="https://raw.githubusercontent.com/MarkusSintonen/pyreqwest/refs/heads/main/tests/bench/benchmark_niquests.png" />
+</p>
+
 ---
 
 ## GC pressure
@@ -36,6 +42,7 @@
 | urllib3 (sync)    | 34                | 84              |
 | aiohttp (async)   | 5                 | 1575            |
 | httpx (async)     | 482               | 1139482         |
+| niquests (async)  | 767               | 1969810         |
 
 ---
 
