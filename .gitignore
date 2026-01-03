@@ -12,5 +12,5 @@ target
 __pycache__
 
 coverage
-
 docs/site
+tests/bench/benchmark_results.json
