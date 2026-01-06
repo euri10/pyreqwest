@@ -14,3 +14,4 @@ __pycache__
 coverage
 docs/site
 tests/bench/benchmark_results.json
+profile.json.gz

@@ -58,3 +58,8 @@ docs:
 docs-browser:
 	uv run maturin develop --uv
 	uv run pdoc --no-show-source pyreqwest.client.types pyreqwest
+
+.PHONY: profile
+profile:
+	uv run maturin develop --uv --profile profiling
+	samply record uv run python -m tests.bench.latency --lib pyreqwest

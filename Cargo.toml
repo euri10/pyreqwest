@@ -31,16 +31,16 @@ pyo3 = { version = "=0.27.2", features = ["extension-module", "experimental-asyn
 pyo3-bytes = "=0.5.0"
 pythonize = "=0.27.0"
 hyper = { version = "=1.8.1", features = ["client", "http1", "http2"] }
-rustls = "=0.23.35"
+rustls = "=0.23.36"
 http = "=1.4.0"
 tokio = { version = "=1.49.0", features = ["rt", "time", "sync", "macros"] }
-tokio-util = "=0.7.17"
+tokio-util = "=0.7.18"
 futures-util = "=0.3.31"
 serde = { version = "1.0.228", features = ["derive"] }
-serde_json = "=1.0.148"
+serde_json = "=1.0.149"
 serde_urlencoded = "=0.7.1"
 bytes = "=1.11.0"
-url = { version = "=2.5.7", features = ["serde"] }
+url = { version = "=2.5.8", features = ["serde"] }
 mime = "=0.3.17"
 cookie = "=0.18.1"
 cookie_store = { version = "=0.22.0", features = ["preserve_order"] }
@@ -55,9 +55,15 @@ log = "=0.4.29"
 pyo3-build-config = "=0.27.2"
 
 [profile.release]
-lto = "fat"
 codegen-units = 1
+lto = "fat"
 strip = true
+
+[profile.profiling]
+inherits = "release"
+lto = "thin"
+strip = false
+debug = true
 
 [lints.clippy]
 all = "deny"

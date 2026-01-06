@@ -1,5 +1,6 @@
 use crate::internal::task_local::TaskLocal;
 use crate::response::BaseResponse;
+use bytes::Bytes;
 use futures_util::FutureExt;
 use pyo3::coroutine::CancelHandle;
 use pyo3::exceptions::PyRuntimeError;
@@ -8,13 +9,12 @@ use pyo3::prelude::*;
 use pyo3::pyclass::boolean_struct::True;
 use pyo3::sync::MutexExt;
 use pyo3::{PyClass, PyTraverseError, PyVisit, intern};
-use pyo3_bytes::PyBytes;
 use std::pin::Pin;
 use std::sync::{Mutex, MutexGuard};
 use std::task::{Context, Poll};
 use tokio::sync::oneshot;
 
-type PyBytesOpt = Option<PyBytes>;
+type BytesOpt = Option<Bytes>;
 type PyObj = Py<PyAny>;
 type Extractor<T> = Box<dyn FnOnce(Bound<PyAny>) -> PyResult<T> + Send + Sync>;
 
@@ -242,6 +242,6 @@ macro_rules! create_asyncio_bridge {
     };
 }
 
-create_asyncio_bridge!(BytesBridge, BytesCoroWaiter, PyBytesOpt);
+create_asyncio_bridge!(BytesBridge, BytesCoroWaiter, BytesOpt);
 create_asyncio_bridge!(AnyBridge, AnyCoroWaiter, PyObj);
 create_asyncio_bridge!(ResponseBridge, ResponseCoroWaiter, BaseResponse);

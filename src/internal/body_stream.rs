@@ -1,5 +1,6 @@
 use crate::internal::asyncio_coro::BytesCoroWaiter;
 use crate::internal::task_local::{OnceTaskLocal, TaskLocal};
+use bytes::Bytes;
 use futures_util::{FutureExt, Stream};
 use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
@@ -18,7 +19,7 @@ pub struct BodyStream {
     is_async: bool,
 }
 impl Stream for BodyStream {
-    type Item = PyResult<PyBytes>;
+    type Item = PyResult<Bytes>;
 
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         if self.cur_waiter.is_none() {
@@ -116,11 +117,19 @@ impl BodyStream {
         })
     }
 
-    fn bytes_extractor(res: Bound<PyAny>) -> PyResult<Option<PyBytes>> {
+    fn bytes_extractor(res: Bound<PyAny>) -> PyResult<Option<Bytes>> {
         if res.is(Self::ellipsis(res.py())) {
             return Ok(None); // End of stream
         }
-        res.extract::<PyBytes>().map(Some)
+        let py_bytes = match res.extract::<PyBytes>() {
+            Ok(b) => b.into_inner(),
+            Err(err) => return Err(err),
+        };
+        let bytes = Bytes::copy_from_slice(&py_bytes);
+        // Drop of PyBytes and backing PyBuffer requires GIL, so do it before returning from GIL context. This avoids
+        // reacquiring GIL deeper inside request processing.
+        drop(py_bytes);
+        Ok(Some(bytes))
     }
 
     fn get_py_iter<'py>(stream: &Bound<'py, PyAny>, is_async: bool) -> PyResult<Bound<'py, PyAny>> {
@@ -178,5 +187,5 @@ fn is_async_iter(obj: &Bound<PyAny>) -> PyResult<bool> {
 
 enum StreamWaiter {
     Async(BytesCoroWaiter),
-    Sync(Option<PyResult<Option<PyBytes>>>),
+    Sync(Option<PyResult<Option<Bytes>>>),
 }
