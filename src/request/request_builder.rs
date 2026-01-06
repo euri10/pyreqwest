@@ -185,19 +185,19 @@ impl BaseRequestBuilder {
     }
 
     fn header(slf: PyRefMut<Self>, name: HeaderName, value: HeaderValue) -> PyResult<PyRefMut<Self>> {
-        Self::apply(slf, |builder| Ok(builder.header(name.0, value.0)))
+        Self::apply(slf, false, |builder| Ok(builder.header(name.0, value.0)))
     }
 
     fn headers(slf: PyRefMut<'_, Self>, headers: HeaderMap) -> PyResult<PyRefMut<'_, Self>> {
-        Self::apply(slf, |builder| Ok(builder.headers(headers.try_take_inner()?)))
+        Self::apply(slf, false, |builder| Ok(builder.headers(headers.try_take_inner()?)))
     }
 
     fn basic_auth(slf: PyRefMut<Self>, username: String, password: Option<String>) -> PyResult<PyRefMut<Self>> {
-        Self::apply(slf, |builder| Ok(builder.basic_auth(username, password)))
+        Self::apply(slf, false, |builder| Ok(builder.basic_auth(username, password)))
     }
 
     fn bearer_auth(slf: PyRefMut<Self>, token: String) -> PyResult<PyRefMut<Self>> {
-        Self::apply(slf, |builder| Ok(builder.bearer_auth(token)))
+        Self::apply(slf, false, |builder| Ok(builder.bearer_auth(token)))
     }
 
     fn body_bytes(mut slf: PyRefMut<Self>, body: PyBytes) -> PyResult<PyRefMut<Self>> {
@@ -227,7 +227,7 @@ impl BaseRequestBuilder {
             })?
         };
         slf.body = Some(RequestBody::from(bytes));
-        Self::apply(slf, |builder| Ok(builder.header(CONTENT_TYPE, "application/json")))
+        Self::apply(slf, false, |builder| Ok(builder.header(CONTENT_TYPE, "application/json")))
     }
 
     fn body_stream<'py>(mut slf: PyRefMut<'py, Self>, stream: Bound<'py, PyAny>) -> PyResult<PyRefMut<'py, Self>> {
@@ -238,11 +238,11 @@ impl BaseRequestBuilder {
 
     fn query<'py>(slf: PyRefMut<'py, Self>, query: Bound<'_, PyAny>) -> PyResult<PyRefMut<'py, Self>> {
         let query = query.extract::<QueryParams>()?.0;
-        Self::apply(slf, |builder| Ok(builder.query(&query)))
+        Self::apply(slf, true, |builder| Ok(builder.query(&query)))
     }
 
     fn timeout(slf: PyRefMut<Self>, timeout: Duration) -> PyResult<PyRefMut<Self>> {
-        Self::apply(slf, |builder| Ok(builder.timeout(timeout)))
+        Self::apply(slf, false, |builder| Ok(builder.timeout(timeout)))
     }
 
     fn multipart<'py>(slf: PyRefMut<'py, Self>, multipart: Bound<'_, FormBuilder>) -> PyResult<PyRefMut<'py, Self>> {
@@ -256,12 +256,12 @@ impl BaseRequestBuilder {
             }
             multipart.build()?
         };
-        Self::apply(slf, |builder| Ok(builder.multipart(multipart)))
+        Self::apply(slf, true, |builder| Ok(builder.multipart(multipart)))
     }
 
     fn form<'py>(slf: PyRefMut<'py, Self>, form: Bound<'_, PyAny>) -> PyResult<PyRefMut<'py, Self>> {
         let form = form.extract::<FormParams>()?.0;
-        Self::apply(slf, |builder| Ok(builder.form(&form)))
+        Self::apply(slf, true, |builder| Ok(builder.form(&form)))
     }
 
     fn extensions(mut slf: PyRefMut<'_, Self>, extensions: Extensions) -> PyResult<PyRefMut<'_, Self>> {
@@ -395,7 +395,7 @@ impl BaseRequestBuilder {
             .map(|_| ())
     }
 
-    fn apply<F>(mut slf: PyRefMut<Self>, fun: F) -> PyResult<PyRefMut<Self>>
+    fn apply<F>(mut slf: PyRefMut<Self>, py_detach: bool, fun: F) -> PyResult<PyRefMut<Self>>
     where
         F: FnOnce(reqwest::RequestBuilder) -> PyResult<reqwest::RequestBuilder>,
         F: Send,
@@ -404,7 +404,11 @@ impl BaseRequestBuilder {
             .inner
             .take()
             .ok_or_else(|| PyRuntimeError::new_err("Request was already built"))?;
-        slf.inner = Some(slf.py().detach(|| fun(builder))?);
+        if py_detach {
+            slf.inner = Some(slf.py().detach(|| fun(builder))?);
+        } else {
+            slf.inner = Some(fun(builder)?);
+        }
         Ok(slf)
     }
 

@@ -17,16 +17,18 @@ class Runner:
         url: Url,
         ca_cert: CaCert,
         *,
-        big_body_limit: int,
-        big_body_chunk_size: int,
+        full_consume_size_limit: int,
+        stream_write_chunk_size: int,
+        stream_read_chunk_size: int,
         num_requests: int,
         warmup_iterations: int,
         iterations: int,
     ) -> None:
         self.url = url
         self.ca_cert = ca_cert
-        self.big_body_limit = big_body_limit
-        self.big_body_chunk_size = big_body_chunk_size
+        self.full_consume_size_limit = full_consume_size_limit
+        self.stream_write_chunk_size = stream_write_chunk_size
+        self.stream_read_chunk_size = stream_read_chunk_size
         self.num_requests = num_requests
         self.warmup_iterations = warmup_iterations
         self.iterations = iterations
@@ -86,7 +88,7 @@ class Runner:
         return res
 
     def body_parts_chunks(self, body: bytes) -> list[bytes]:
-        chunk_size = self.big_body_chunk_size
+        chunk_size = self.stream_write_chunk_size
         return [body[i : i + chunk_size] for i in range(0, len(body), chunk_size)]
 
     async def body_parts_stream(self, chunks: list[bytes]) -> AsyncGenerator[bytes, str]:
@@ -95,7 +97,7 @@ class Runner:
 
     async def run_pyreqwest_concurrent(self, body: bytes, concurrency: int) -> list[float]:
         async with ClientBuilder().add_root_certificate_der(self.ca_cert.der).https_only(True).build() as client:
-            if len(body) <= self.big_body_limit:
+            if len(body) <= self.full_consume_size_limit:
 
                 async def post_read() -> None:
                     response = await client.post(self.url).body_bytes(body).build().send()
@@ -111,8 +113,8 @@ class Runner:
                         .build_streamed() as response
                     ):
                         tot = 0
-                        while chunk := await response.body_reader.read(self.big_body_chunk_size):
-                            assert len(chunk) <= self.big_body_chunk_size
+                        while chunk := await response.body_reader.read(self.stream_read_chunk_size):
+                            assert len(chunk) <= self.stream_read_chunk_size
                             tot += len(chunk)
                         assert tot == len(body)
 
@@ -120,7 +122,7 @@ class Runner:
 
     def run_sync_pyreqwest_concurrent(self, body: bytes, concurrency: int) -> list[float]:
         with SyncClientBuilder().add_root_certificate_der(self.ca_cert.der).https_only(True).build() as client:
-            if len(body) <= self.big_body_limit:
+            if len(body) <= self.full_consume_size_limit:
 
                 def post_read() -> None:
                     response = client.post(self.url).body_bytes(body).build().send()
@@ -136,8 +138,8 @@ class Runner:
                         .build_streamed() as response
                     ):
                         tot = 0
-                        while chunk := response.body_reader.read(self.big_body_chunk_size):
-                            assert len(chunk) <= self.big_body_chunk_size
+                        while chunk := response.body_reader.read(self.stream_read_chunk_size):
+                            assert len(chunk) <= self.stream_read_chunk_size
                             tot += len(chunk)
                         assert tot == len(body)
 
@@ -150,7 +152,7 @@ class Runner:
         ssl_ctx = ssl.create_default_context(cadata=self.ca_cert.der)
 
         async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=ssl_ctx, limit=concurrency)) as session:
-            if len(body) <= self.big_body_limit:
+            if len(body) <= self.full_consume_size_limit:
 
                 async def post_read() -> None:
                     async with session.post(url_str, data=body) as response:
@@ -161,8 +163,8 @@ class Runner:
                 async def post_read() -> None:
                     async with session.post(url_str, data=self.body_parts_stream(chunks)) as response:
                         tot = 0
-                        async for chunk in response.content.iter_chunked(self.big_body_chunk_size):
-                            assert len(chunk) <= self.big_body_chunk_size
+                        async for chunk in response.content.iter_chunked(self.stream_read_chunk_size):
+                            assert len(chunk) <= self.stream_read_chunk_size
                             tot += len(chunk)
                         assert tot == len(body)
 
@@ -175,7 +177,7 @@ class Runner:
         ssl_ctx = ssl.create_default_context(cadata=self.ca_cert.der)
 
         async with httpx.AsyncClient(verify=ssl_ctx, limits=httpx.Limits(max_connections=concurrency)) as client:
-            if len(body) <= self.big_body_limit:
+            if len(body) <= self.full_consume_size_limit:
 
                 async def post_read() -> None:
                     response = await client.post(url_str, content=body)
@@ -186,8 +188,8 @@ class Runner:
                 async def post_read() -> None:
                     response = await client.post(url_str, content=self.body_parts_stream(chunks))
                     tot = 0
-                    async for chunk in response.aiter_bytes(self.big_body_chunk_size):
-                        assert len(chunk) <= self.big_body_chunk_size
+                    async for chunk in response.aiter_bytes(self.stream_read_chunk_size):
+                        assert len(chunk) <= self.stream_read_chunk_size
                         tot += len(chunk)
                     assert tot == len(body)
 
@@ -200,7 +202,7 @@ class Runner:
         ssl_ctx = ssl.create_default_context(cadata=self.ca_cert.der)
 
         with urllib3.PoolManager(maxsize=concurrency, ssl_context=ssl_ctx) as pool:
-            if len(body) <= self.big_body_limit:
+            if len(body) <= self.full_consume_size_limit:
 
                 def post_read() -> None:
                     response = pool.request("POST", url_str, body=body)
@@ -213,8 +215,8 @@ class Runner:
                     response = pool.request("POST", url_str, body=iter(chunks), preload_content=False)
                     assert response.status == 200
                     tot = 0
-                    while chunk := response.read(self.big_body_chunk_size):
-                        assert len(chunk) <= self.big_body_chunk_size
+                    while chunk := response.read(self.stream_read_chunk_size):
+                        assert len(chunk) <= self.stream_read_chunk_size
                         tot += len(chunk)
                     assert tot == len(body)
                     response.release_conn()
@@ -227,7 +229,7 @@ class Runner:
         url_str = str(self.url)
         client = rnet.Client(verify=False, https_only=True)
 
-        if len(body) <= self.big_body_limit:
+        if len(body) <= self.full_consume_size_limit:
 
             async def post_read() -> None:
                 response = await client.post(url_str, body=body)  # noqa: F821
@@ -258,7 +260,7 @@ class Runner:
         async with niquests.AsyncSession(pool_connections=concurrency, pool_maxsize=concurrency) as client:
             client.verify = self.ca_cert.pem
 
-            if len(body) <= self.big_body_limit:
+            if len(body) <= self.full_consume_size_limit:
 
                 async def post_read() -> None:
                     response = await client.post(url_str, data=body)
@@ -274,7 +276,7 @@ class Runner:
                     assert isinstance(response, niquests.AsyncResponse)  # niquests is weird...
                     assert response.status_code == 200
                     tot = 0
-                    resp_iter = await response.iter_raw(self.big_body_chunk_size)
+                    resp_iter = await response.iter_raw(self.stream_read_chunk_size)
                     async for chunk in resp_iter:
                         tot += len(chunk)
                     assert tot == len(body)

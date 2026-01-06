@@ -76,7 +76,7 @@ impl BaseClientBuilder {
     }
 
     fn user_agent(slf: PyRefMut<Self>, value: String) -> PyResult<PyRefMut<Self>> {
-        Self::apply(slf, |builder| Ok(builder.user_agent(value)))
+        Self::apply(slf, false, |builder| Ok(builder.user_agent(value)))
     }
 
     fn default_headers(mut slf: PyRefMut<'_, Self>, headers: HeaderMap) -> PyResult<PyRefMut<'_, Self>> {
@@ -86,44 +86,44 @@ impl BaseClientBuilder {
     }
 
     fn default_cookie_store(slf: PyRefMut<Self>, enable: bool) -> PyResult<PyRefMut<Self>> {
-        Self::apply(slf, |builder| Ok(builder.cookie_store(enable)))
+        Self::apply(slf, false, |builder| Ok(builder.cookie_store(enable)))
     }
 
     fn cookie_provider(slf: PyRefMut<'_, Self>, provider: Py<CookieStore>) -> PyResult<PyRefMut<'_, Self>> {
-        Self::apply(slf, |builder| Ok(builder.cookie_provider(Arc::new(CookieStorePyProxy(provider)))))
+        Self::apply(slf, false, |builder| Ok(builder.cookie_provider(Arc::new(CookieStorePyProxy(provider)))))
     }
 
     fn gzip(slf: PyRefMut<Self>, enable: bool) -> PyResult<PyRefMut<Self>> {
-        Self::apply(slf, |builder| Ok(builder.gzip(enable)))
+        Self::apply(slf, false, |builder| Ok(builder.gzip(enable)))
     }
 
     fn brotli(slf: PyRefMut<Self>, enable: bool) -> PyResult<PyRefMut<Self>> {
-        Self::apply(slf, |builder| Ok(builder.brotli(enable)))
+        Self::apply(slf, false, |builder| Ok(builder.brotli(enable)))
     }
 
     fn zstd(slf: PyRefMut<Self>, enable: bool) -> PyResult<PyRefMut<Self>> {
-        Self::apply(slf, |builder| Ok(builder.zstd(enable)))
+        Self::apply(slf, false, |builder| Ok(builder.zstd(enable)))
     }
 
     fn deflate(slf: PyRefMut<Self>, enable: bool) -> PyResult<PyRefMut<Self>> {
-        Self::apply(slf, |builder| Ok(builder.deflate(enable)))
+        Self::apply(slf, false, |builder| Ok(builder.deflate(enable)))
     }
 
     fn max_redirects(slf: PyRefMut<Self>, max_redirects: usize) -> PyResult<PyRefMut<Self>> {
-        Self::apply(slf, |builder| Ok(builder.redirect(redirect::Policy::limited(max_redirects))))
+        Self::apply(slf, false, |builder| Ok(builder.redirect(redirect::Policy::limited(max_redirects))))
     }
 
     fn referer(slf: PyRefMut<Self>, enable: bool) -> PyResult<PyRefMut<Self>> {
-        Self::apply(slf, |builder| Ok(builder.referer(enable)))
+        Self::apply(slf, false, |builder| Ok(builder.referer(enable)))
     }
 
     fn proxy<'py>(slf: PyRefMut<'py, Self>, proxy: Bound<'_, ProxyBuilder>) -> PyResult<PyRefMut<'py, Self>> {
         let proxy = proxy.try_borrow_mut()?.build()?;
-        Self::apply(slf, |builder| Ok(builder.proxy(proxy)))
+        Self::apply(slf, false, |builder| Ok(builder.proxy(proxy)))
     }
 
     fn no_proxy(slf: PyRefMut<Self>) -> PyResult<PyRefMut<Self>> {
-        Self::apply(slf, |builder| Ok(builder.no_proxy()))
+        Self::apply(slf, false, |builder| Ok(builder.no_proxy()))
     }
 
     fn timeout(mut slf: PyRefMut<Self>, timeout: Duration) -> PyResult<PyRefMut<Self>> {
@@ -133,11 +133,11 @@ impl BaseClientBuilder {
     }
 
     fn read_timeout(slf: PyRefMut<Self>, timeout: Duration) -> PyResult<PyRefMut<Self>> {
-        Self::apply(slf, |builder| Ok(builder.read_timeout(timeout)))
+        Self::apply(slf, false, |builder| Ok(builder.read_timeout(timeout)))
     }
 
     fn connect_timeout(slf: PyRefMut<Self>, timeout: Duration) -> PyResult<PyRefMut<Self>> {
-        Self::apply(slf, |builder| Ok(builder.connect_timeout(timeout)))
+        Self::apply(slf, false, |builder| Ok(builder.connect_timeout(timeout)))
     }
 
     fn pool_timeout(mut slf: PyRefMut<Self>, timeout: Duration) -> PyResult<PyRefMut<Self>> {
@@ -147,16 +147,16 @@ impl BaseClientBuilder {
     }
 
     fn pool_idle_timeout(slf: PyRefMut<Self>, timeout: Option<Duration>) -> PyResult<PyRefMut<Self>> {
-        Self::apply(slf, |builder| Ok(builder.pool_idle_timeout(timeout)))
+        Self::apply(slf, false, |builder| Ok(builder.pool_idle_timeout(timeout)))
     }
 
     fn pool_max_idle_per_host(slf: PyRefMut<Self>, max_idle: usize) -> PyResult<PyRefMut<Self>> {
-        Self::apply(slf, |builder| Ok(builder.pool_max_idle_per_host(max_idle)))
+        Self::apply(slf, false, |builder| Ok(builder.pool_max_idle_per_host(max_idle)))
     }
 
     fn connection_verbose(mut slf: PyRefMut<Self>, enable: bool) -> PyResult<PyRefMut<Self>> {
         slf.connection_verbose = enable;
-        Self::apply(slf, |builder| Ok(builder.connection_verbose(enable)))
+        Self::apply(slf, false, |builder| Ok(builder.connection_verbose(enable)))
     }
 
     fn http1_lower_case_headers(mut slf: PyRefMut<Self>) -> PyResult<PyRefMut<Self>> {
@@ -169,67 +169,69 @@ impl BaseClientBuilder {
         slf: PyRefMut<Self>,
         value: bool,
     ) -> PyResult<PyRefMut<Self>> {
-        Self::apply(slf, |builder| Ok(builder.http1_allow_obsolete_multiline_headers_in_responses(value)))
+        Self::apply(slf, false, |builder| {
+            Ok(builder.http1_allow_obsolete_multiline_headers_in_responses(value))
+        })
     }
 
     fn http1_ignore_invalid_headers_in_responses(slf: PyRefMut<Self>, value: bool) -> PyResult<PyRefMut<Self>> {
-        Self::apply(slf, |builder| Ok(builder.http1_ignore_invalid_headers_in_responses(value)))
+        Self::apply(slf, false, |builder| Ok(builder.http1_ignore_invalid_headers_in_responses(value)))
     }
 
     fn http1_allow_spaces_after_header_name_in_responses(slf: PyRefMut<Self>, value: bool) -> PyResult<PyRefMut<Self>> {
-        Self::apply(slf, |builder| Ok(builder.http1_allow_spaces_after_header_name_in_responses(value)))
+        Self::apply(slf, false, |builder| Ok(builder.http1_allow_spaces_after_header_name_in_responses(value)))
     }
 
     fn http1_only(slf: PyRefMut<Self>) -> PyResult<PyRefMut<Self>> {
-        Self::apply(slf, |builder| Ok(builder.http1_only()))
+        Self::apply(slf, false, |builder| Ok(builder.http1_only()))
     }
 
     fn http09_responses(slf: PyRefMut<Self>) -> PyResult<PyRefMut<Self>> {
-        Self::apply(slf, |builder| Ok(builder.http09_responses()))
+        Self::apply(slf, false, |builder| Ok(builder.http09_responses()))
     }
 
     fn http2_prior_knowledge(slf: PyRefMut<Self>) -> PyResult<PyRefMut<Self>> {
-        Self::apply(slf, |builder| Ok(builder.http2_prior_knowledge()))
+        Self::apply(slf, false, |builder| Ok(builder.http2_prior_knowledge()))
     }
 
     fn http2_initial_stream_window_size(slf: PyRefMut<Self>, value: Option<u32>) -> PyResult<PyRefMut<Self>> {
-        Self::apply(slf, |builder| Ok(builder.http2_initial_stream_window_size(value)))
+        Self::apply(slf, false, |builder| Ok(builder.http2_initial_stream_window_size(value)))
     }
 
     fn http2_initial_connection_window_size(slf: PyRefMut<Self>, value: Option<u32>) -> PyResult<PyRefMut<Self>> {
-        Self::apply(slf, |builder| Ok(builder.http2_initial_connection_window_size(value)))
+        Self::apply(slf, false, |builder| Ok(builder.http2_initial_connection_window_size(value)))
     }
 
     fn http2_adaptive_window(slf: PyRefMut<Self>, enabled: bool) -> PyResult<PyRefMut<Self>> {
-        Self::apply(slf, |builder| Ok(builder.http2_adaptive_window(enabled)))
+        Self::apply(slf, false, |builder| Ok(builder.http2_adaptive_window(enabled)))
     }
 
     fn http2_max_frame_size(slf: PyRefMut<Self>, value: Option<u32>) -> PyResult<PyRefMut<Self>> {
-        Self::apply(slf, |builder| Ok(builder.http2_max_frame_size(value)))
+        Self::apply(slf, false, |builder| Ok(builder.http2_max_frame_size(value)))
     }
 
     fn http2_max_header_list_size(slf: PyRefMut<Self>, value: u32) -> PyResult<PyRefMut<Self>> {
-        Self::apply(slf, |builder| Ok(builder.http2_max_header_list_size(value)))
+        Self::apply(slf, false, |builder| Ok(builder.http2_max_header_list_size(value)))
     }
 
     fn http2_keep_alive_interval(slf: PyRefMut<Self>, value: Option<Duration>) -> PyResult<PyRefMut<Self>> {
-        Self::apply(slf, |builder| Ok(builder.http2_keep_alive_interval(value)))
+        Self::apply(slf, false, |builder| Ok(builder.http2_keep_alive_interval(value)))
     }
 
     fn http2_keep_alive_timeout(slf: PyRefMut<Self>, timeout: Duration) -> PyResult<PyRefMut<Self>> {
-        Self::apply(slf, |builder| Ok(builder.http2_keep_alive_timeout(timeout)))
+        Self::apply(slf, false, |builder| Ok(builder.http2_keep_alive_timeout(timeout)))
     }
 
     fn http2_keep_alive_while_idle(slf: PyRefMut<Self>, enabled: bool) -> PyResult<PyRefMut<Self>> {
-        Self::apply(slf, |builder| Ok(builder.http2_keep_alive_while_idle(enabled)))
+        Self::apply(slf, false, |builder| Ok(builder.http2_keep_alive_while_idle(enabled)))
     }
 
     fn tcp_nodelay(slf: PyRefMut<Self>, enabled: bool) -> PyResult<PyRefMut<Self>> {
-        Self::apply(slf, |builder| Ok(builder.tcp_nodelay(enabled)))
+        Self::apply(slf, false, |builder| Ok(builder.tcp_nodelay(enabled)))
     }
 
     fn local_address(slf: PyRefMut<Self>, addr: Option<String>) -> PyResult<PyRefMut<Self>> {
-        Self::apply(slf, |builder| {
+        Self::apply(slf, true, |builder| {
             let addr = addr
                 .map(|v| IpAddr::from_str(v.as_str()))
                 .transpose()
@@ -241,7 +243,7 @@ impl BaseClientBuilder {
     // :NOCOV_START
     #[cfg(any(target_os = "linux", target_os = "macos"))]
     fn interface(slf: PyRefMut<Self>, value: String) -> PyResult<PyRefMut<Self>> {
-        Self::apply(slf, |builder| Ok(builder.interface(value.as_str())))
+        Self::apply(slf, false, |builder| Ok(builder.interface(value.as_str())))
     }
 
     #[cfg(not(any(target_os = "linux", target_os = "macos")))]
@@ -250,21 +252,21 @@ impl BaseClientBuilder {
     } // :NOCOV_END
 
     fn tcp_keepalive(slf: PyRefMut<Self>, duration: Option<Duration>) -> PyResult<PyRefMut<Self>> {
-        Self::apply(slf, |builder| Ok(builder.tcp_keepalive(duration)))
+        Self::apply(slf, false, |builder| Ok(builder.tcp_keepalive(duration)))
     }
 
     fn tcp_keepalive_interval(slf: PyRefMut<Self>, interval: Option<Duration>) -> PyResult<PyRefMut<Self>> {
-        Self::apply(slf, |builder| Ok(builder.tcp_keepalive_interval(interval)))
+        Self::apply(slf, false, |builder| Ok(builder.tcp_keepalive_interval(interval)))
     }
 
     fn tcp_keepalive_retries(slf: PyRefMut<Self>, count: Option<u32>) -> PyResult<PyRefMut<Self>> {
-        Self::apply(slf, |builder| Ok(builder.tcp_keepalive_retries(count)))
+        Self::apply(slf, false, |builder| Ok(builder.tcp_keepalive_retries(count)))
     }
 
     // :NOCOV_START
     #[cfg(target_os = "linux")]
     fn tcp_user_timeout(slf: PyRefMut<Self>, timeout: Option<Duration>) -> PyResult<PyRefMut<Self>> {
-        Self::apply(slf, |builder| Ok(builder.tcp_user_timeout(timeout)))
+        Self::apply(slf, false, |builder| Ok(builder.tcp_user_timeout(timeout)))
     }
 
     #[cfg(not(target_os = "linux"))]
@@ -273,7 +275,7 @@ impl BaseClientBuilder {
     } // :NOCOV_END
 
     fn add_root_certificate_der(slf: PyRefMut<Self>, cert: PyBytes) -> PyResult<PyRefMut<Self>> {
-        Self::apply(slf, |builder| {
+        Self::apply(slf, true, |builder| {
             let cert =
                 reqwest::Certificate::from_der(cert.as_slice()).map_err(|e| PyValueError::new_err(e.to_string()))?;
             Ok(builder.add_root_certificate(cert))
@@ -281,7 +283,7 @@ impl BaseClientBuilder {
     }
 
     fn add_root_certificate_pem(slf: PyRefMut<Self>, cert: PyBytes) -> PyResult<PyRefMut<Self>> {
-        Self::apply(slf, |builder| {
+        Self::apply(slf, true, |builder| {
             let cert =
                 reqwest::Certificate::from_pem(cert.as_slice()).map_err(|e| PyValueError::new_err(e.to_string()))?;
             Ok(builder.add_root_certificate(cert))
@@ -289,7 +291,7 @@ impl BaseClientBuilder {
     }
 
     fn add_crl_pem(slf: PyRefMut<Self>, cert: PyBytes) -> PyResult<PyRefMut<Self>> {
-        Self::apply(slf, |builder| {
+        Self::apply(slf, true, |builder| {
             let cert = reqwest::tls::CertificateRevocationList::from_pem(cert.as_slice())
                 .map_err(|e| PyValueError::new_err(e.to_string()))?;
             Ok(builder.add_crl(cert))
@@ -297,7 +299,7 @@ impl BaseClientBuilder {
     }
 
     fn identity_pem(slf: PyRefMut<Self>, buf: PyBytes) -> PyResult<PyRefMut<Self>> {
-        Self::apply(slf, |builder| {
+        Self::apply(slf, true, |builder| {
             let identity =
                 reqwest::Identity::from_pem(buf.as_slice()).map_err(|e| PyValueError::new_err(e.to_string()))?;
             Ok(builder.identity(identity))
@@ -305,27 +307,35 @@ impl BaseClientBuilder {
     }
 
     fn danger_accept_invalid_certs(slf: PyRefMut<Self>, enable: bool) -> PyResult<PyRefMut<Self>> {
-        Self::apply(slf, |builder| Ok(builder.danger_accept_invalid_certs(enable)))
+        Self::apply(slf, false, |builder| Ok(builder.danger_accept_invalid_certs(enable)))
     }
 
     fn tls_sni(slf: PyRefMut<Self>, enable: bool) -> PyResult<PyRefMut<Self>> {
-        Self::apply(slf, |builder| Ok(builder.tls_sni(enable)))
+        Self::apply(slf, false, |builder| Ok(builder.tls_sni(enable)))
     }
 
     fn min_tls_version(slf: PyRefMut<Self>, value: String) -> PyResult<PyRefMut<Self>> {
-        Self::apply(slf, |builder| Ok(builder.min_tls_version(Self::parse_tls_version(value.as_str())?)))
+        Self::apply(
+            slf,
+            false,
+            |builder| Ok(builder.min_tls_version(Self::parse_tls_version(value.as_str())?)),
+        )
     }
 
     fn max_tls_version(slf: PyRefMut<Self>, value: String) -> PyResult<PyRefMut<Self>> {
-        Self::apply(slf, |builder| Ok(builder.max_tls_version(Self::parse_tls_version(value.as_str())?)))
+        Self::apply(
+            slf,
+            false,
+            |builder| Ok(builder.max_tls_version(Self::parse_tls_version(value.as_str())?)),
+        )
     }
 
     fn https_only(slf: PyRefMut<Self>, enable: bool) -> PyResult<PyRefMut<Self>> {
-        Self::apply(slf, |builder| Ok(builder.https_only(enable)))
+        Self::apply(slf, false, |builder| Ok(builder.https_only(enable)))
     }
 
     fn resolve(slf: PyRefMut<Self>, domain: String, ip: String, port: u16) -> PyResult<PyRefMut<Self>> {
-        Self::apply(slf, |builder| {
+        Self::apply(slf, true, |builder| {
             let ip = IpAddr::from_str(ip.as_str()).map_err(|e| PyValueError::new_err(e.to_string()))?;
             Ok(builder.resolve(domain.as_str(), SocketAddr::new(ip, port)))
         })
@@ -423,7 +433,7 @@ impl BaseClientBuilder {
         Ok(())
     }
 
-    fn apply<F>(mut slf: PyRefMut<Self>, fun: F) -> PyResult<PyRefMut<Self>>
+    fn apply<F>(mut slf: PyRefMut<Self>, py_detach: bool, fun: F) -> PyResult<PyRefMut<Self>>
     where
         F: FnOnce(reqwest::ClientBuilder) -> PyResult<reqwest::ClientBuilder>,
         F: Send,
@@ -432,7 +442,11 @@ impl BaseClientBuilder {
             .inner
             .take()
             .ok_or_else(|| PyRuntimeError::new_err("Client was already built"))?;
-        slf.inner = Some(slf.py().detach(|| fun(builder))?);
+        if py_detach {
+            slf.inner = Some(slf.py().detach(|| fun(builder))?);
+        } else {
+            slf.inner = Some(fun(builder)?);
+        }
         Ok(slf)
     }
 

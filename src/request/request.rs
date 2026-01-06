@@ -248,16 +248,11 @@ impl Request {
         }
         let request = &mut this.request.reqwest;
 
-        py.detach(|| -> PyResult<()> {
-            match this.headers.take() {
-                Some(ReqHeaders::Headers(h)) => *request.headers_mut() = h.try_take_inner()?,
-                Some(ReqHeaders::PyHeaders(py_headers)) => {
-                    *request.headers_mut() = py_headers.get().try_take_inner()?
-                }
-                None => {}
-            }
-            Ok(())
-        })?;
+        match this.headers.take() {
+            Some(ReqHeaders::Headers(h)) => *request.headers_mut() = h.try_take_inner()?,
+            Some(ReqHeaders::PyHeaders(py_headers)) => *request.headers_mut() = py_headers.get().try_take_inner()?,
+            None => {}
+        }
 
         Ok(this.request)
     }
@@ -375,19 +370,23 @@ pub struct RequestData {
 }
 impl RequestData {
     fn try_clone(&self, py: Python) -> PyResult<Self> {
-        let reqwest = py.detach(|| {
-            self.reqwest
+        let extensions = self.extensions.as_ref().map(|ext| ext.copy(py)).transpose()?;
+        let json_handler = self.json_handler.as_ref().map(|v| v.clone_ref(py));
+
+        py.detach(|| {
+            let reqwest = self
+                .reqwest
                 .try_clone()
-                .ok_or_else(|| PyRuntimeError::new_err("Failed to clone request"))
-        })?;
-        Ok(Self {
-            spawner: self.spawner.clone(),
-            reqwest,
-            extensions: self.extensions.as_ref().map(|ext| ext.copy(py)).transpose()?,
-            body_consume_config: self.body_consume_config,
-            json_handler: self.json_handler.as_ref().map(|v| v.clone_ref(py)),
-            error_for_status: self.error_for_status,
-            connection_verbose: self.connection_verbose,
+                .ok_or_else(|| PyRuntimeError::new_err("Failed to clone request"))?;
+            Ok(Self {
+                spawner: self.spawner.clone(),
+                reqwest,
+                extensions,
+                body_consume_config: self.body_consume_config,
+                json_handler,
+                error_for_status: self.error_for_status,
+                connection_verbose: self.connection_verbose,
+            })
         })
     }
 }

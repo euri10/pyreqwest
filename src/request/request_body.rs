@@ -80,7 +80,7 @@ impl RequestBody {
     pub fn try_clone(&self, py: Python) -> PyResult<Self> {
         let body = match self.lock(py)?.as_ref() {
             Some(InnerBody::Bytes(bytes)) => InnerBody::Bytes(py.detach(|| bytes.clone())),
-            Some(InnerBody::Stream(stream)) => InnerBody::Stream(Python::attach(|py| stream.try_clone(py))?),
+            Some(InnerBody::Stream(stream)) => InnerBody::Stream(stream.try_clone(py)?),
             None => return Err(PyRuntimeError::new_err("Request body already consumed")),
         };
         Ok(Self::new(body))

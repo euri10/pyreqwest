@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.patches import Rectangle
 
+from tests.bench.latency import FULL_CONSUME_SIZE_LIMIT
 from tests.bench.utils import StatsCollection, fmt_size, is_sync
 
 
@@ -45,7 +46,8 @@ def create_plot(collection: StatsCollection, comparison_lib: str) -> None:
                 patch.set_facecolor(color)
 
             # Customize subplot
-            ax.set_title(f"{fmt_size(body_size)} @ {concurrency} concurrent", fontweight="bold", pad=10)
+            streamed = " (streamed)" if body_size > FULL_CONSUME_SIZE_LIMIT else ""
+            ax.set_title(f"{fmt_size(body_size)} {streamed} @ {concurrency} concurrent", fontweight="bold", pad=10)
             ax.set_ylabel("Response Time (ms)")
             ax.grid(True, alpha=0.3)
 

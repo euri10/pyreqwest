@@ -1,7 +1,7 @@
 use crate::client::RuntimeHandle;
 use crate::client::internal::SpawnedRequestPermit;
 use crate::exceptions::utils::map_read_error;
-use bytes::{Bytes, BytesMut};
+use bytes::{BufMut, Bytes, BytesMut};
 use futures_util::FutureExt;
 use http_body_util::BodyExt;
 use pyo3::PyResult;
@@ -15,7 +15,7 @@ pub const DEFAULT_READ_BUFFER_LIMIT: usize = 65536;
 
 pub struct BodyReader {
     body_receiver: Option<Receiver>,
-    chunks: VecDeque<Bytes>,
+    pending_chunks: VecDeque<Bytes>,
     fully_consumed_body: Option<Bytes>,
     content_length: Option<usize>,
     read_bytes: usize,
@@ -51,7 +51,7 @@ impl BodyReader {
 
         let body_reader = BodyReader {
             body_receiver,
-            chunks: init_chunks,
+            pending_chunks: init_chunks,
             fully_consumed_body: None,
             content_length: Self::content_length(&head.headers),
             read_bytes: 0,
@@ -61,7 +61,7 @@ impl BodyReader {
     }
 
     async fn read_next(&mut self, cancel: &mut CancelHandle) -> PyResult<Option<Bytes>> {
-        if let Some(chunk) = self.chunks.pop_front() {
+        if let Some(chunk) = self.pending_chunks.pop_front() {
             return Ok(Some(chunk));
         }
 
@@ -79,7 +79,7 @@ impl BodyReader {
 
         let mut buffer_iter = chunks_buffer.into_iter();
         let first_chunk = buffer_iter.next();
-        self.chunks.extend(buffer_iter);
+        self.pending_chunks.extend(buffer_iter);
         Ok(first_chunk)
     }
 
@@ -107,7 +107,7 @@ impl BodyReader {
         };
 
         while let Some(chunk) = self.read_next(cancel).await? {
-            bytes.extend_from_slice(&chunk);
+            bytes.put(chunk);
         }
 
         let bytes = bytes.freeze();
@@ -121,6 +121,19 @@ impl BodyReader {
             return Ok(Some(Bytes::new()));
         }
 
+        let Some(mut first_chunk) = self.read_next(cancel).await? else {
+            return Ok(None); // No more data
+        };
+
+        if first_chunk.len() >= amount {
+            if first_chunk.len() > amount {
+                let extra = first_chunk.split_off(amount);
+                self.pending_chunks.push_front(extra);
+            }
+            self.read_bytes += first_chunk.len();
+            return Ok(Some(first_chunk));
+        }
+
         let remaining = self
             .content_length
             .map(|content_len| content_len.saturating_sub(self.read_bytes));
@@ -129,22 +142,22 @@ impl BodyReader {
         let mut collected = BytesMut::with_capacity(capacity);
         let mut remaining = amount;
 
+        remaining -= first_chunk.len();
+        collected.put(first_chunk);
+
         while remaining > 0 {
             if let Some(mut chunk) = self.read_next(cancel).await? {
                 if chunk.len() > remaining {
                     let extra = chunk.split_off(remaining);
-                    self.chunks.push_front(extra);
+                    self.pending_chunks.push_front(extra);
                 }
-                collected.extend_from_slice(&chunk);
                 remaining -= chunk.len();
+                collected.put(chunk);
             } else {
                 break; // No more data
             }
         }
 
-        if collected.is_empty() {
-            return Ok(None);
-        }
         self.read_bytes += collected.len();
         Ok(Some(collected.freeze()))
     }

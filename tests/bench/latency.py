@@ -1,19 +1,21 @@
 import argparse
 import asyncio
-import statistics
 
 from pyreqwest.http import Url
 
+from tests.bench.gc import capture_gc_stats
 from tests.bench.runner import Runner
 from tests.bench.server import CaCert, server
 from tests.bench.utils import StatsCollection, fmt_size, is_sync
+
+FULL_CONSUME_SIZE_LIMIT = 1_000_000
 
 
 class PerformanceLatency:
     def __init__(self, server_url: Url, lib: str, ca_cert: CaCert) -> None:
         self.lib = lib
         self.body_sizes = [
-            5_000_000,  # 5MB
+            2_000_000,  # 2MB (streamed)
             1_000_000,  # 1MB
             100_000,  # 100KB
             10_000,  # 10KB
@@ -22,11 +24,12 @@ class PerformanceLatency:
         self.runner = Runner(
             url=server_url.with_query({"echo_only_body": "1"}),
             ca_cert=ca_cert,
-            big_body_limit=1_000_000,
-            big_body_chunk_size=1024 * 1024,
+            full_consume_size_limit=FULL_CONSUME_SIZE_LIMIT,
+            stream_write_chunk_size=256 * 1024,
+            stream_read_chunk_size=65536,
             num_requests=100,
-            warmup_iterations=5,
-            iterations=50,
+            warmup_iterations=10,
+            iterations=40,
         )
 
     async def run_benchmarks(self) -> None:
@@ -37,12 +40,18 @@ class PerformanceLatency:
         print(f"Benchmark iterations: {self.runner.iterations}")
         print()
 
-        for body_size in self.body_sizes:
-            body = b"x" * body_size
-            for concurrency in self.concurrency_levels:
-                timings = await self.runner.run_lib(self.lib, body, concurrency)
-                print(f"{self.lib} average: {statistics.mean(timings):.4f}ms\n")
-                StatsCollection.save_result(self.lib, body_size, concurrency, timings)
+        bodies = [b"x" * size for size in self.body_sizes]
+        results: list[tuple[int, int, list[float]]] = []
+
+        with capture_gc_stats(self.lib):
+            for body in bodies:
+                for concurrency in self.concurrency_levels:
+                    timings = await self.runner.run_lib(self.lib, body, concurrency)
+                    results.append((len(body), concurrency, timings))
+                    print(f"{self.lib} average: {(sum(timings) / len(timings)):.4f}ms\n")
+
+        for body_sz, concurrency, timings in results:
+            StatsCollection.save_result(self.lib, body_sz, concurrency, timings)
 
 
 async def main() -> None:

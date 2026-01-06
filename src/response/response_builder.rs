@@ -138,12 +138,6 @@ impl ResponseBuilder {
     } // :NOCOV_END
 }
 
-impl Default for ResponseBuilder {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl ResponseBuilder {
     pub fn new() -> Self {
         let (head, _) = http::response::Response::new(()).into_parts();

@@ -93,7 +93,7 @@ impl FormBuilder {
             .inner
             .take()
             .ok_or_else(|| PyRuntimeError::new_err("Form was already built"))?;
-        slf.inner = Some(slf.py().detach(|| fun(builder))?);
+        slf.inner = Some(fun(builder)?);
         Ok(slf)
     }
 

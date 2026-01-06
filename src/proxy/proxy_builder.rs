@@ -14,30 +14,21 @@ pub struct ProxyBuilder {
 #[pymethods]
 impl ProxyBuilder {
     #[staticmethod]
-    fn http(py: Python, url: UrlType) -> PyResult<Self> {
-        py.detach(|| {
-            let proxy =
-                reqwest::Proxy::http(url.0).map_err(|e| PyValueError::new_err(format!("Invalid proxy: {}", e)))?;
-            Ok(ProxyBuilder { inner: Some(proxy) })
-        })
+    fn http(url: UrlType) -> PyResult<Self> {
+        let proxy = reqwest::Proxy::http(url.0).map_err(|e| PyValueError::new_err(format!("Invalid proxy: {}", e)))?;
+        Ok(ProxyBuilder { inner: Some(proxy) })
     }
 
     #[staticmethod]
-    fn https(py: Python, url: UrlType) -> PyResult<Self> {
-        py.detach(|| {
-            let proxy =
-                reqwest::Proxy::https(url.0).map_err(|e| PyValueError::new_err(format!("Invalid proxy: {}", e)))?;
-            Ok(ProxyBuilder { inner: Some(proxy) })
-        })
+    fn https(url: UrlType) -> PyResult<Self> {
+        let proxy = reqwest::Proxy::https(url.0).map_err(|e| PyValueError::new_err(format!("Invalid proxy: {}", e)))?;
+        Ok(ProxyBuilder { inner: Some(proxy) })
     }
 
     #[staticmethod]
-    fn all(py: Python, url: UrlType) -> PyResult<Self> {
-        py.detach(|| {
-            let proxy =
-                reqwest::Proxy::all(url.0).map_err(|e| PyValueError::new_err(format!("Invalid proxy: {}", e)))?;
-            Ok(ProxyBuilder { inner: Some(proxy) })
-        })
+    fn all(url: UrlType) -> PyResult<Self> {
+        let proxy = reqwest::Proxy::all(url.0).map_err(|e| PyValueError::new_err(format!("Invalid proxy: {}", e)))?;
+        Ok(ProxyBuilder { inner: Some(proxy) })
     }
 
     #[staticmethod]
@@ -94,7 +85,7 @@ impl ProxyBuilder {
             .inner
             .take()
             .ok_or_else(|| PyRuntimeError::new_err("Proxy was already built"))?;
-        slf.inner = Some(slf.py().detach(|| fun(builder))?);
+        slf.inner = Some(fun(builder)?);
         Ok(slf)
     }
 }

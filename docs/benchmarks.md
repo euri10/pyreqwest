@@ -36,13 +36,13 @@
 
 | Library (mode)    | Total Collections | Total Collected |
 |-------------------|-------------------|-----------------|
-| pyreqwest (async) | 3                 | 72              |
-| pyreqwest (sync)  | 4                 | 72              |
-| rnet (async)      | 3                 | 72              |
-| urllib3 (sync)    | 34                | 84              |
-| aiohttp (async)   | 5                 | 1575            |
-| httpx (async)     | 482               | 1139482         |
-| niquests (async)  | 767               | 1969810         |
+| pyreqwest (async) | 22                | 0               |
+| pyreqwest (sync)  | 25                | 0               |
+| rnet (async)      | 40                | 0               |
+| aiohttp (async)   | 377               | 3978            |
+| urllib3 (sync)    | 427               | 821689          |
+| httpx (async)     | 772               | 1347560         |
+| niquests (async)  | 1260              | 2667198         |
 
 ---
 

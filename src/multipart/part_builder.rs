@@ -17,13 +17,13 @@ pub struct PartBuilder {
 #[pymethods]
 impl PartBuilder {
     #[staticmethod]
-    fn from_text(py: Python, value: String) -> Self {
-        py.detach(|| Self::new(reqwest::multipart::Part::text(value), false))
+    fn from_text(value: String) -> Self {
+        Self::new(reqwest::multipart::Part::text(value), false)
     }
 
     #[staticmethod]
-    fn from_bytes(py: Python, value: PyBytes) -> Self {
-        py.detach(|| Self::new(reqwest::multipart::Part::bytes(Vec::from(value.into_inner())), false))
+    fn from_bytes(value: PyBytes) -> Self {
+        Self::new(reqwest::multipart::Part::bytes(Vec::from(value.into_inner())), false)
     }
 
     #[staticmethod]
@@ -32,7 +32,7 @@ impl PartBuilder {
         stream.set_task_local(py, &OnceTaskLocal::new())?;
         let is_async = stream.is_async();
 
-        py.detach(|| Ok(Self::new(reqwest::multipart::Part::stream(stream.into_reqwest(false)?), is_async)))
+        Ok(Self::new(reqwest::multipart::Part::stream(stream.into_reqwest(false)?), is_async))
     }
 
     #[staticmethod]
@@ -41,12 +41,10 @@ impl PartBuilder {
         stream.set_task_local(py, &OnceTaskLocal::new())?;
         let is_async = stream.is_async();
 
-        py.detach(|| {
-            Ok(Self::new(
-                reqwest::multipart::Part::stream_with_length(stream.into_reqwest(false)?, length),
-                is_async,
-            ))
-        })
+        Ok(Self::new(
+            reqwest::multipart::Part::stream_with_length(stream.into_reqwest(false)?, length),
+            is_async,
+        ))
     }
 
     #[staticmethod]
@@ -105,7 +103,7 @@ impl PartBuilder {
             .inner
             .take()
             .ok_or_else(|| PyRuntimeError::new_err("Part was already consumed"))?;
-        slf.inner = Some(slf.py().detach(|| fun(builder))?);
+        slf.inner = Some(fun(builder)?);
         Ok(slf)
     }
 }

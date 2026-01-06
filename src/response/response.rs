@@ -117,12 +117,12 @@ impl BaseResponse {
         Err(StatusError::from_custom(msg, json!({"status": inner.status.0.as_u16()})))
     }
 
-    fn get_header(&self, py: Python, name: &str) -> PyResult<Option<HeaderValue>> {
-        py.detach(|| self.get_header_inner(name))
+    fn get_header(&self, name: &str) -> PyResult<Option<HeaderValue>> {
+        self.get_header_inner(name)
     }
 
-    fn get_header_all(&self, py: Python, name: &str) -> PyResult<Vec<HeaderValue>> {
-        py.detach(|| self.get_header_all_inner(name))
+    fn get_header_all(&self, name: &str) -> PyResult<Vec<HeaderValue>> {
+        self.get_header_all_inner(name)
     }
 
     fn content_type_mime(&self, py: Python) -> PyResult<Option<Mime>> {

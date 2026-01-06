@@ -11,6 +11,7 @@ libs=(
   "urllib3"
   "httpx"
   "rnet"
+  "niquests"
 )
 for lib in "${libs[@]}"; do
   uv run python -m tests.bench.latency --lib "$lib"
@@ -20,8 +21,4 @@ for lib in "${libs[@]}"; do
   if [[ "$lib" != *"pyreqwest"* ]]; then
     uv run python -m tests.bench.plots --lib "$lib"
   fi
-done
-
-for lib in "${libs[@]}"; do
-  uv run python -m tests.bench.gc --lib "$lib"
 done
