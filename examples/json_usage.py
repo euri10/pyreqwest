@@ -21,7 +21,7 @@ async def example_post_json() -> None:
     async with ClientBuilder().error_for_status(True).build() as client:
         resp = await client.post(httpbin_url() / "post").body_json({"message": "hello"}).build().send()
         data = await resp.json()
-        assert data["headers"]["Content-Type"] == ["application/json"]  # Set by default
+        assert data["headers"]["Content-Type"] == "application/json"  # Set by default
         print({"status": resp.status, "echo": data["json"], "content_type": data["headers"]["Content-Type"]})
 
 

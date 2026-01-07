@@ -31,7 +31,7 @@ async def example_simple() -> None:
     async with ClientBuilder().with_middleware(mw).error_for_status(True).build() as client:
         resp = await client.get(httpbin_url() / "get").build().send()
         data = await resp.json()
-        assert data["headers"]["X-Mw"] == ["val1"] and resp.headers["X-Mw-Resp"] == "val2"
+        assert data["headers"]["X-Mw"] == "val1" and resp.headers["X-Mw-Resp"] == "val2"
         print({"request_header": data["headers"]["X-Mw"], "response_header": resp.headers["X-Mw-Resp"]})
 
 
@@ -70,7 +70,7 @@ async def example_extensions() -> None:
         resp = await client.get(httpbin_url() / "get").extensions(req_ext).build().send()
         assert resp.extensions["demo_ext"] == "init_mw1_mw2"
         headers = (await resp.json())["headers"]
-        assert headers["X-Mw1"] == ["init"] and headers["X-Mw2"] == ["init_mw1"]
+        assert headers["X-Mw1"] == "init" and headers["X-Mw2"] == "init_mw1"
         print({"mws": [headers["X-Mw1"], headers["X-Mw2"]], "extensions": resp.extensions})
 
 
@@ -210,8 +210,8 @@ async def example_middleware_request_specific() -> None:
         req1 = client.get(httpbin_url() / "get").with_middleware(mw2).build()  # Uses both middlewares
         req2 = client.get(httpbin_url() / "get").build()
         resp1, resp2 = await req1.send(), await req2.send()
-        assert (await resp1.json())["args"] == {"mw1": ["val1"], "mw2": ["val2"]}
-        assert (await resp2.json())["args"] == {"mw1": ["val1"]}
+        assert (await resp1.json())["args"] == {"mw1": "val1", "mw2": "val2"}
+        assert (await resp2.json())["args"] == {"mw1": "val1"}
         print({"req1_args": (await resp1.json())["args"], "req2_args": (await resp2.json())["args"]})
 
 

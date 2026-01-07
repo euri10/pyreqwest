@@ -18,7 +18,7 @@ async def example_basic_auth() -> None:
     async with ClientBuilder().error_for_status(True).build() as client:
         resp = await client.get(httpbin_url() / "basic-auth/user/passwd").basic_auth("user", "passwd").build().send()
         data = await resp.json()
-        print({"authorized": data["authorized"], "user": data["user"]})
+        print({"authenticated": data["authenticated"], "user": data["user"]})
 
     # Wrong credentials
     async with ClientBuilder().error_for_status(True).build() as client:
