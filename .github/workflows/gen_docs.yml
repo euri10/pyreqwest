@@ -10,9 +10,12 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   gen-docs:
-    concurrency: gen-docs
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -22,13 +25,16 @@ jobs:
       - uses: astral-sh/setup-uv@v7
 
       - name: Build docs
-        run: make docs outdir=./docs/site/${{ github.ref_name }}
+        run: make docs outdir=./docs/dist
 
       - name: Deploy Github Pages
         uses: JamesIves/github-pages-deploy-action@v4
         with:
-          folder: ./docs/site/${{ github.ref_name }}
+          folder: ./docs/dist
+          target-folder: ${{ github.ref_name == 'main' && '.' || github.ref_name }}
           branch: gh-pages-gen-docs
           single-commit: true
-          clean: true
           force: true
+          clean: true
+          clean-exclude: |
+            v*
