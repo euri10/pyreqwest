@@ -147,13 +147,6 @@ async def test_query(client: Client, echo_server: SubprocessServer):
         assert (await resp.json())["query"] == [["foo", "bar"], ["foo", "baz"]]
 
 
-async def test_version(client: Client, echo_server: SubprocessServer, https_echo_server: SubprocessServer):
-    resp = await client.get(echo_server.url).build().send()
-    assert (await resp.json())["http_version"] == "1.1"
-    resp = await client.get(https_echo_server.url).build().send()
-    assert (await resp.json())["http_version"] == "2"
-
-
 async def test_form(client: Client, echo_server: SubprocessServer):
     async def send(arg: Sequence[tuple[str, str]] | Mapping[str, str]) -> str:
         resp = await client.get(echo_server.url).form(arg).build().send()

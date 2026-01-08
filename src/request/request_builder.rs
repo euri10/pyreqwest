@@ -51,6 +51,11 @@ pub struct SyncOneOffRequestBuilder(Option<BaseClient>);
 
 #[pymethods]
 impl RequestBuilder {
+    fn body_stream<'py>(mut slf: PyRefMut<'py, Self>, stream: Bound<'py, PyAny>) -> PyResult<PyRefMut<'py, Self>> {
+        slf.as_super().inner_body_stream(stream)?;
+        Ok(slf)
+    }
+
     fn build(mut slf: PyRefMut<Self>, py: Python) -> PyResult<Py<ConsumedRequest>> {
         let slf_super = slf.as_super();
         let body_config = slf_super.body_consume_config(false)?;
@@ -79,6 +84,11 @@ impl RequestBuilder {
 
 #[pymethods]
 impl SyncRequestBuilder {
+    fn body_stream<'py>(mut slf: PyRefMut<'py, Self>, stream: Bound<'py, PyAny>) -> PyResult<PyRefMut<'py, Self>> {
+        slf.as_super().inner_body_stream(stream)?;
+        Ok(slf)
+    }
+
     fn build(mut slf: PyRefMut<Self>, py: Python) -> PyResult<Py<SyncConsumedRequest>> {
         let slf_super = slf.as_super();
         let body_config = slf_super.body_consume_config(false)?;
@@ -230,12 +240,6 @@ impl BaseRequestBuilder {
         Self::apply(slf, false, |builder| Ok(builder.header(CONTENT_TYPE, "application/json")))
     }
 
-    fn body_stream<'py>(mut slf: PyRefMut<'py, Self>, stream: Bound<'py, PyAny>) -> PyResult<PyRefMut<'py, Self>> {
-        slf.check_inner()?;
-        slf.body = Some(RequestBody::from_stream(stream)?);
-        Ok(slf)
-    }
-
     fn query<'py>(slf: PyRefMut<'py, Self>, query: Bound<'_, PyAny>) -> PyResult<PyRefMut<'py, Self>> {
         let query = query.extract::<QueryParams>()?.0;
         Self::apply(slf, true, |builder| Ok(builder.query(&query)))
@@ -329,6 +333,12 @@ impl BaseRequestBuilder {
             streamed_read_buffer_limit: None,
             is_blocking,
         }
+    }
+
+    fn inner_body_stream<'py>(&mut self, stream: Bound<'py, PyAny>) -> PyResult<()> {
+        self.check_inner()?;
+        self.body = Some(RequestBody::from_stream(stream)?);
+        Ok(())
     }
 
     fn inner_build(&mut self, consume_body: BodyConsumeConfig) -> PyResult<Request> {

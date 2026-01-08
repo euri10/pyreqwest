@@ -38,6 +38,8 @@ pub struct BaseClientBuilder {
     runtime: Option<Py<Runtime>>,
     base_url: Option<Url>,
     connection_verbose: bool,
+    http1: bool,
+    http2: bool,
 }
 
 #[pyclass(extends=BaseClientBuilder)]
@@ -182,16 +184,26 @@ impl BaseClientBuilder {
         Self::apply(slf, false, |builder| Ok(builder.http1_allow_spaces_after_header_name_in_responses(value)))
     }
 
-    fn http1_only(slf: PyRefMut<Self>) -> PyResult<PyRefMut<Self>> {
-        Self::apply(slf, false, |builder| Ok(builder.http1_only()))
+    fn http1(mut slf: PyRefMut<Self>, enable: bool) -> PyResult<PyRefMut<Self>> {
+        slf.http1 = enable;
+        Ok(slf)
     }
 
-    fn http09_responses(slf: PyRefMut<Self>) -> PyResult<PyRefMut<Self>> {
-        Self::apply(slf, false, |builder| Ok(builder.http09_responses()))
+    fn http1_only(mut slf: PyRefMut<Self>) -> PyResult<PyRefMut<Self>> {
+        slf.http1 = true;
+        slf.http2 = false;
+        Ok(slf)
     }
 
-    fn http2_prior_knowledge(slf: PyRefMut<Self>) -> PyResult<PyRefMut<Self>> {
-        Self::apply(slf, false, |builder| Ok(builder.http2_prior_knowledge()))
+    fn http2(mut slf: PyRefMut<Self>, enable: bool) -> PyResult<PyRefMut<Self>> {
+        slf.http2 = enable;
+        Ok(slf)
+    }
+
+    fn http2_prior_knowledge(mut slf: PyRefMut<Self>) -> PyResult<PyRefMut<Self>> {
+        slf.http1 = false;
+        slf.http2 = true;
+        Ok(slf)
     }
 
     fn http2_initial_stream_window_size(slf: PyRefMut<Self>, value: Option<u32>) -> PyResult<PyRefMut<Self>> {
@@ -224,6 +236,10 @@ impl BaseClientBuilder {
 
     fn http2_keep_alive_while_idle(slf: PyRefMut<Self>, enabled: bool) -> PyResult<PyRefMut<Self>> {
         Self::apply(slf, false, |builder| Ok(builder.http2_keep_alive_while_idle(enabled)))
+    }
+
+    fn http09_responses(slf: PyRefMut<Self>) -> PyResult<PyRefMut<Self>> {
+        Self::apply(slf, false, |builder| Ok(builder.http09_responses()))
     }
 
     fn tcp_nodelay(slf: PyRefMut<Self>, enabled: bool) -> PyResult<PyRefMut<Self>> {
@@ -364,6 +380,10 @@ impl BaseClientBuilder {
     pub fn new() -> Self {
         Self {
             inner: Some(reqwest::ClientBuilder::new().user_agent(DEFAULT_UA)),
+            http1: true,
+            // HTTP2 is opt-in as in reqwest its also opt-in via crate features. Default reqwest HTTP2 params
+            // usual require tuning based on the workload.
+            http2: false,
             ..Default::default()
         }
     }
@@ -380,6 +400,16 @@ impl BaseClientBuilder {
                 .take()
                 .ok_or_else(|| PyRuntimeError::new_err("Client was already built"))?
                 .tls_backend_rustls();
+
+            if self.http1 && self.http2 {
+                // Both enabled (default with reqwest http2 feature enabled)
+            } else if self.http1 && !self.http2 {
+                inner_builder = inner_builder.http1_only();
+            } else if !self.http1 && self.http2 {
+                inner_builder = inner_builder.http2_prior_knowledge();
+            } else {
+                return Err(BuilderError::from_causes("At least one of http1 or http2 must be enabled", vec![]));
+            }
 
             if !self.http1_lower_case_headers {
                 inner_builder = inner_builder.http1_title_case_headers();

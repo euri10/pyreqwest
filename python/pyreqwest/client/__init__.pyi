@@ -205,14 +205,27 @@ class BaseClientBuilder:
         Newline codepoints will be transformed to spaces when parsing.
         """
 
-    def http1_only(self) -> Self:
-        """Only use HTTP/1."""
+    def http1(self, enabled: bool) -> Self:
+        """Enable or disable HTTP/1 support. Default is true."""
 
-    def http09_responses(self) -> Self:
-        """Allow HTTP/0.9 responses (very old / uncommon)."""
+    def http1_only(self) -> Self:
+        """Only use HTTP/1. This is the default. This is consistent with reqwest opt-in http2 feature.
+
+        Same as `.http2(False)`
+        """
+
+    def http2(self, enabled: bool) -> Self:
+        """Enable or disable HTTP/2 support. Default is false. This is consistent with reqwest opt-in http2 feature.
+
+        When enabling, it is recommended to tune "http2_" settings for production usage based on expected workloads.
+        """
 
     def http2_prior_knowledge(self) -> Self:
-        """Only use HTTP/2."""
+        """Only use HTTP/2.
+
+        Same as `.http1(False).http2(True)`. When enabling, it is recommended to tune "http2_" settings for production
+        usage based on expected workloads.
+        """
 
     def http2_initial_stream_window_size(self, value: int | None) -> Self:
         """Sets the SETTINGS_INITIAL_WINDOW_SIZE option for HTTP2 stream-level flow control. Default is 65K."""
@@ -237,6 +250,9 @@ class BaseClientBuilder:
 
     def http2_keep_alive_while_idle(self, enabled: bool) -> Self:
         """Sets whether HTTP2 keep-alive should apply while the connection is idle. Default is false."""
+
+    def http09_responses(self) -> Self:
+        """Allow HTTP/0.9 responses (very old / uncommon)."""
 
     def tcp_nodelay(self, enabled: bool) -> Self:
         """Set TCP_NODELAY (disable Nagle). Default is true."""

@@ -313,6 +313,74 @@ async def test_builder_use_after_build():
     await client.close()
 
 
+@pytest.mark.parametrize(
+    "mode",
+    [
+        {},
+        {"http1": True, "http2": True},
+        {"http1": True, "http2": False},
+        {"http1": False, "http2": True},
+        {"http1": False, "http2": False},
+    ],
+)
+@pytest.mark.parametrize("https", [True, False])
+async def test_http_version_enable(
+    echo_server: SubprocessServer,
+    https_echo_server: SubprocessServer,
+    cert_authority: trustme.CA,
+    mode: dict[str, bool],
+    https: bool,
+):
+    cert_pem = cert_authority.cert_pem.bytes()
+    builder = ClientBuilder().add_root_certificate_pem(cert_pem).error_for_status(True)
+
+    if mode:
+        builder = builder.http1(mode["http1"]).http2(mode["http2"])
+        version = "2" if mode["http2"] else "1.1"
+    else:
+        version = "1.1"
+
+    if https:
+        url = https_echo_server.url
+    else:
+        url = echo_server.url
+        version = "1.1" if mode and mode["http1"] and mode["http2"] else version  # fallback to http1.1 in http
+
+    if not mode or mode["http1"] or mode["http2"]:
+        async with builder.build() as client:
+            resp = await client.get(url).build().send()
+            data = await resp.json()
+            assert data["http_version"] == version
+            assert data["scheme"] == ("https" if https else "http")
+    else:
+        with pytest.raises(BuilderError, match="At least one of http1 or http2 must be enable"):
+            builder.build()
+
+
+@pytest.mark.parametrize("mode", [None, "http1_only", "http2_prior_knowledge"])
+@pytest.mark.parametrize("https", [True, False])
+async def test_http_version_enable__reqwest_funcs(
+    echo_server: SubprocessServer,
+    https_echo_server: SubprocessServer,
+    cert_authority: trustme.CA,
+    mode: str | None,
+    https: bool,
+):
+    cert_pem = cert_authority.cert_pem.bytes()
+    builder = ClientBuilder().add_root_certificate_pem(cert_pem).error_for_status(True)
+
+    builder = builder.http1_only() if mode == "http1_only" else builder
+    builder = builder.http2_prior_knowledge() if mode == "http2_prior_knowledge" else builder
+    version = "2" if mode == "http2_prior_knowledge" else "1.1"
+    url = https_echo_server.url if https else echo_server.url
+
+    async with builder.build() as client:
+        resp = await client.get(url).build().send()
+        data = await resp.json()
+        assert data["http_version"] == version
+        assert data["scheme"] == ("https" if https else "http")
+
+
 async def test_https_only(echo_server: SubprocessServer):
     async with ClientBuilder().https_only(True).error_for_status(True).build() as client:
         req = client.get(echo_server.url).build()
@@ -437,7 +505,6 @@ async def test_various_builder_functions(
         .http1_allow_obsolete_multiline_headers_in_responses(True)
         .http1_ignore_invalid_headers_in_responses(True)
         .http1_allow_spaces_after_header_name_in_responses(True)
-        .http1_only()
         .tcp_nodelay(True)
         .local_address("127.0.0.1")
         .tcp_keepalive(timedelta(seconds=1))

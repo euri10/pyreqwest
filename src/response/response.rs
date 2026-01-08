@@ -129,10 +129,15 @@ impl BaseResponse {
         py.detach(|| self.content_type_mime_inner())
     }
 
+    // We need docstring also here to get it showup in pdoc (we can not easily have this fn in the subclass)
+    /// Return entire body as bytes (cached after first read).
     async fn bytes(&mut self, #[pyo3(cancel_handle)] mut cancel: CancelHandle) -> PyResult<PyBytes> {
         AllowThreads(async { self.bytes_inner(&mut cancel).await.map(PyBytes::new) }).await
     }
 
+    // We need docstring also here to get it showup in pdoc (we can not easily have this fn in the subclass)
+    /// Decode body as JSON (underlying bytes cached after first read). Uses serde for decoding.
+    /// User can provide custom deserializer via `ClientBuilder.json_handler`.
     async fn json(&mut self, #[pyo3(cancel_handle)] cancel: CancelHandle) -> PyResult<Py<PyAny>> {
         if self.ref_inner()?.json_handler.as_ref().is_some_and(|v| v.has_loads()) {
             let coro = Python::attach(|py| {
@@ -156,6 +161,8 @@ impl BaseResponse {
         }
     }
 
+    // We need docstring also here to get it showup in pdoc (we can not easily have this fn in the subclass)
+    /// Decode body to text (underlying bytes cached after first read). Uses charset from Content-Type.
     async fn text(&mut self, #[pyo3(cancel_handle)] mut cancel: CancelHandle) -> PyResult<String> {
         self.text_inner(&mut cancel).await // AllowThreads is used inside
     }

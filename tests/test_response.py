@@ -21,9 +21,14 @@ from tests.servers.server_subprocess import SubprocessServer
 
 
 @pytest.fixture
-async def client(cert_authority: trustme.CA) -> AsyncGenerator[Client, None]:
+def client_builder(cert_authority: trustme.CA) -> ClientBuilder:
     cert_pem = cert_authority.cert_pem.bytes()
-    async with ClientBuilder().error_for_status(True).add_root_certificate_pem(cert_pem).build() as client:
+    return ClientBuilder().error_for_status(True).add_root_certificate_pem(cert_pem)
+
+
+@pytest.fixture
+async def client(client_builder: ClientBuilder) -> AsyncGenerator[Client, None]:
+    async with client_builder.build() as client:
         yield client
 
 
@@ -72,17 +77,19 @@ async def test_headers(client: Client, echo_server: SubprocessServer) -> None:
     assert type(resp.headers) is HeaderMap and isinstance(resp.headers, MutableMapping)
 
 
-@pytest.mark.parametrize("proto", ["http", "https"])
-async def test_version(
-    client: Client, echo_server: SubprocessServer, https_echo_server: SubprocessServer, proto: str
-) -> None:
-    url = echo_server.url if proto == "http" else https_echo_server.url
-    resp = await client.get(url).build().send()
-    if proto == "http":
-        assert resp.version == "HTTP/1.1"
+@pytest.mark.parametrize("version", ["http1", "http2"])
+async def test_version(client_builder: ClientBuilder, https_echo_server: SubprocessServer, version: str) -> None:
+    if version == "http1":
+        client_builder = client_builder.http1_only()
+        version = "HTTP/1.1"
     else:
-        assert proto == "https"
-        assert resp.version == "HTTP/2.0"
+        assert version == "http2"
+        client_builder = client_builder.http2_prior_knowledge()
+        version = "HTTP/2.0"
+
+    async with client_builder.build() as client:
+        resp = await client.get(https_echo_server.url).build().send()
+    assert resp.version == version
 
     for v in ["HTTP/0.9", "HTTP/1.0", "HTTP/1.1", "HTTP/2.0", "HTTP/3.0"]:
         resp.version = v

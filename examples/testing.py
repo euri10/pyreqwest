@@ -7,8 +7,10 @@ Run directly:
     uv run python -m examples.testing
 """
 
+import asyncio
 import json
 import re
+import sys
 from collections.abc import Generator
 from contextlib import contextmanager
 from typing import Any
@@ -19,6 +21,8 @@ from pyreqwest.client import ClientBuilder
 from pyreqwest.pytest_plugin import ClientMocker
 from pyreqwest.request import Request
 from pyreqwest.response import Response, ResponseBuilder
+
+from ._utils import run_examples
 
 # In pytest you can use the `client_mocker` fixture that provides ClientMocker.
 
@@ -172,3 +176,7 @@ async def request(method: str, url: str, json: Any | None = None) -> None:
 
         response = await req.build().send()
         print({"status": response.status, "body": await response.text()})
+
+
+if __name__ == "__main__":
+    asyncio.run(run_examples(sys.modules[__name__]))
