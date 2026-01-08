@@ -10,7 +10,7 @@ CallableExample = Callable[[], Awaitable[None]] | Callable[[], None]
 
 
 def httpbin_url() -> Url:
-    return Url(os.environ.get("HTTPBIN", "https://httpbin.org"))
+    return Url(os.environ.get("HTTPBIN", "https://httpbingo.org/"))
 
 
 async def run_examples(mod: ModuleType) -> None:
