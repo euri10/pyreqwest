@@ -29,7 +29,7 @@ from pyreqwest.http import HeaderMap, Url
 from pyreqwest.request import BaseRequestBuilder, ConsumedRequest, Request, RequestBuilder
 from pyreqwest.response import BaseResponse, Response, ResponseBodyReader
 
-from tests.utils import IS_CI
+from tests.utils import IS_CI, IS_OSX
 
 from .servers.server import find_free_port
 from .servers.server_subprocess import SubprocessServer
@@ -190,6 +190,7 @@ async def test_connection_failure__while_client_read(echo_body_parts_server: Sub
         assert e.value.details and {"message": "error reading a body from connection"} in e.value.details["causes"]
 
 
+@pytest.mark.skipif(IS_CI and IS_OSX, reason="Does not work on GHA macOS runners")
 async def test_too_big_response_header(echo_server: SubprocessServer):
     url = echo_server.url.with_query({"header_repeat": "a:1000000"})
 
