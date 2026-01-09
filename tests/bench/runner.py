@@ -233,24 +233,24 @@ class Runner:
 
             async def post_read() -> None:
                 response = await client.post(url_str, body=body)  # noqa: F821
-                assert response.status == 200
-                assert len(await response.bytes()) == len(body)
-                del response
+                async with response as response:
+                    assert response.status == 200
+                    assert len(await response.bytes()) == len(body)
         else:
             chunks = self.body_parts_chunks(body)
 
             async def post_read() -> None:
                 response = await client.post(url_str, body=self.body_parts_stream(chunks))  # noqa: F821
-                assert response.status == 200
-                tot = 0
-                async with response.stream() as streamer:
-                    async for chunk in streamer:
-                        tot += len(chunk)
-                assert tot == len(body)
-                del response
+                async with response as response:
+                    assert response.status == 200
+                    tot = 0
+                    async with response.stream() as streamer:
+                        async for chunk in streamer:
+                            tot += len(chunk)
+                    assert tot == len(body)
 
         res = await self.meas_concurrent_batch(post_read, len(body), concurrency)
-        del client
+        del client  # No close or context manager in rnet. Make sure to dispose anything now.
         return res
 
     async def run_niquests_concurrent(self, body: bytes, concurrency: int) -> list[float]:
