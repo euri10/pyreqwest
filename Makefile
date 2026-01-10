@@ -27,6 +27,7 @@ format:
 .PHONY: type-check
 type-check:
 	uv run mypy .
+	uv run basedpyright --level=error python
 
 .PHONY: static-checks
 static-checks: lint type-check

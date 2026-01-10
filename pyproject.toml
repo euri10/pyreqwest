@@ -60,6 +60,7 @@ dev = [
     "types-docker==7.1.0.20251202",
     # Documentation
     "pdoc==16.0.0",
+    "basedpyright>=1.37.1",
 ]
 bench = [
     "aiohttp==3.13.2",
