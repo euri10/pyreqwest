@@ -4,7 +4,9 @@ import json
 from collections.abc import AsyncIterable, Awaitable, Callable, Iterable
 from functools import cached_property
 from re import Pattern
-from typing import Any, Literal, Self, TypeVar, assert_never
+from typing import TYPE_CHECKING, Any, Literal, Self, TypeVar, assert_never, override
+
+import pytest
 
 from pyreqwest.middleware import Next, SyncNext
 from pyreqwest.middleware.types import Middleware, SyncMiddleware
@@ -13,33 +15,35 @@ from pyreqwest.pytest_plugin.types import (
     BodyContentMatcher,
     CustomHandler,
     CustomMatcher,
-    JsonMatcher,
-    Matcher,
     MethodMatcher,
     PathMatcher,
     QueryMatcher,
     UrlMatcher,
 )
 from pyreqwest.request import (
-    BaseRequestBuilder,
+    ConsumedRequest,
     OneOffRequestBuilder,
     Request,
     RequestBody,
     RequestBuilder,
+    StreamRequest,
+    SyncConsumedRequest,
     SyncOneOffRequestBuilder,
     SyncRequestBuilder,
+    SyncStreamRequest,
 )
 from pyreqwest.response import BaseResponse, Response, ResponseBuilder, SyncResponse
 from pyreqwest.types import HeadersType
 
-try:
-    import pytest
-
-    pytest_fixture = pytest.fixture
+if TYPE_CHECKING:
     MonkeyPatch = pytest.MonkeyPatch
-except ImportError:
-    pytest_fixture = None  # type: ignore[assignment]
-    MonkeyPatch = Any  # type: ignore[assignment,misc]
+else:
+    try:
+        pytest_fixture = pytest.fixture
+        MonkeyPatch = pytest.MonkeyPatch
+    except ImportError:
+        pytest_fixture = None  # type: ignore[assignment]
+        MonkeyPatch = Any  # type: ignore[assignment,misc]
 
 _R = TypeVar("_R", bound=BaseResponse)
 
@@ -51,9 +55,9 @@ class Mock:
         self, method: MethodMatcher | None = None, *, path: PathMatcher | None = None, url: UrlMatcher | None = None
     ) -> None:
         """Do not use directly. Instead, use ClientMocker.mock()."""
-        self._method_matcher = InternalMatcher(method) if method is not None else None
-        self._path_matcher = InternalMatcher(path) if path is not None else None
-        self._url_matcher = InternalMatcher(url) if url is not None else None
+        self._method_matcher: InternalMatcher | None = InternalMatcher(method) if method is not None else None
+        self._path_matcher: InternalMatcher | None = InternalMatcher(path) if path is not None else None
+        self._url_matcher: InternalMatcher | None = InternalMatcher(url) if url is not None else None
         self._query_matcher: dict[str, InternalMatcher] | InternalMatcher | None = None
         self._header_matchers: dict[str, InternalMatcher] = {}
         self._body_matcher: tuple[InternalMatcher, Literal["content", "json"]] | None = None
@@ -62,7 +66,7 @@ class Mock:
 
         self._matched_requests: list[Request] = []
         self._unmatched_requests_repr_parts: list[dict[str, str | None]] = []
-        self._using_response_builder = False
+        self._using_response_builder: bool = False
 
     def assert_called(
         self,
@@ -117,14 +121,14 @@ class Mock:
             self._query_matcher = InternalMatcher(query)
         return self
 
-    def match_query_param(self, name: str, value: Matcher) -> Self:
+    def match_query_param(self, name: str, value: str | Pattern[str] | object) -> Self:
         """Set a matcher to match a specific query parameter."""
         if not isinstance(self._query_matcher, dict):
             self._query_matcher = {}
         self._query_matcher[name] = InternalMatcher(value)
         return self
 
-    def match_header(self, name: str, value: Matcher) -> Self:
+    def match_header(self, name: str, value: str | Pattern[str] | object) -> Self:
         """Set a matcher to match a specific request header."""
         self._header_matchers[name] = InternalMatcher(value)
         return self
@@ -134,12 +138,12 @@ class Mock:
         self._body_matcher = (InternalMatcher(matcher), "content")
         return self
 
-    def match_body_json(self, matcher: JsonMatcher) -> Self:
+    def match_body_json(self, matcher: object) -> Self:
         """Set a matcher to match JSON request bodies."""
         self._body_matcher = (InternalMatcher(matcher), "json")
         return self
 
-    def match_request(self, matcher: CustomMatcher) -> Self:
+    def match_request(self, matcher: Callable[[Request], Awaitable[bool]] | Callable[[Request], bool]) -> Self:
         """Set a custom matcher to match requests."""
         self._custom_matcher = matcher
         return self
@@ -152,37 +156,37 @@ class Mock:
 
     def with_status(self, status: int) -> Self:
         """Set the mocked response status code."""
-        self._response_builder.status(status)
+        _ = self._response_builder.status(status)
         return self
 
     def with_header(self, name: str, value: str) -> Self:
         """Add a header to the mocked response."""
-        self._response_builder.header(name, value)
+        _ = self._response_builder.header(name, value)
         return self
 
     def with_headers(self, headers: HeadersType) -> Self:
         """Add headers to the mocked response."""
-        self._response_builder.headers(headers)
+        _ = self._response_builder.headers(headers)
         return self
 
     def with_body_bytes(self, body: bytes | bytearray | memoryview) -> Self:
         """Set the mocked response body to the given bytes."""
-        self._response_builder.body_bytes(body)
+        _ = self._response_builder.body_bytes(body)
         return self
 
     def with_body_text(self, body: str) -> Self:
         """Set the mocked response body to the given text."""
-        self._response_builder.body_text(body)
+        _ = self._response_builder.body_text(body)
         return self
 
-    def with_body_json(self, json_body: Any) -> Self:
+    def with_body_json(self, json_body: object) -> Self:
         """Set the mocked response body to the given JSON-serializable object."""
-        self._response_builder.body_json(json_body)
+        _ = self._response_builder.body_json(json_body)
         return self
 
     def with_version(self, version: str) -> Self:
         """Set the mocked response HTTP version."""
-        self._response_builder.version(version)
+        _ = self._response_builder.version(version)
         return self
 
     def _handle_common_matchers(self, request: Request) -> dict[str, bool]:
@@ -289,7 +293,8 @@ class Mock:
         matcher, kind = self._body_matcher
         if kind == "json":
             try:
-                return matcher.matches(json.loads(body_bytes))
+                body_json = json.loads(body_bytes)  # pyright: ignore[reportAny]
+                return matcher.matches(body_json)  # pyright: ignore[reportAny]
             except json.JSONDecodeError:
                 return False
         elif kind == "content":
@@ -308,7 +313,7 @@ class Mock:
 
         if isinstance(self._query_matcher, dict):
             for key, expected_value in self._query_matcher.items():
-                actual_value = query_dict.get(key)
+                actual_value: str | list[str] | None = query_dict.get(key)
                 if actual_value is None or not expected_value.matches(actual_value):
                     return False
             return True
@@ -342,9 +347,10 @@ class Mock:
         assert res is None or isinstance(res, SyncResponse)
         return res
 
+    @override
     def __repr__(self) -> str:
         """Return a string representation of the mock for debugging purposes."""
-        parts = []
+        parts: list[str] = []
         if self._method_matcher is not None:
             parts.append(f"method={self._method_matcher!r}")
         if self._url_matcher is not None:
@@ -373,37 +379,74 @@ class ClientMocker:
     def __init__(self) -> None:
         """@private"""
         self._mocks: list[Mock] = []
-        self._strict = False
+        self._strict: bool = False
 
     @staticmethod
     def create_mocker(monkeypatch: MonkeyPatch) -> "ClientMocker":
         """Create a ClientMocker for mocking HTTP requests in tests."""
         mocker = ClientMocker()
 
-        def setup(klass: type[BaseRequestBuilder], *, is_async: bool) -> None:
-            orig_build_consumed = klass.build  # type: ignore[attr-defined]
-            orig_build_streamed = klass.build_streamed  # type: ignore[attr-defined]
+        def setup_async(klass: type[RequestBuilder]) -> None:
+            orig_build_consumed = klass.build
+            orig_build_streamed = klass.build_streamed
 
-            def build_patch(self: BaseRequestBuilder, orig: Callable[[BaseRequestBuilder], Request]) -> Request:
-                middleware = mocker._create_middleware() if is_async else mocker._create_sync_middleware()
-                return orig(self.with_middleware(middleware))  # type: ignore[attr-defined]
+            def build_patch(
+                self: RequestBuilder, orig: Callable[[RequestBuilder], ConsumedRequest | StreamRequest]
+            ) -> ConsumedRequest | StreamRequest:
+                return orig(self.with_middleware(mocker._create_middleware()))
 
-            monkeypatch.setattr(klass, "build", lambda slf: build_patch(slf, orig_build_consumed))
-            monkeypatch.setattr(klass, "build_streamed", lambda slf: build_patch(slf, orig_build_streamed))
+            monkeypatch.setattr(
+                klass,
+                "build",
+                lambda slf: build_patch(slf, orig_build_consumed),  # pyright: ignore[reportUnknownLambdaType,reportUnknownArgumentType]
+            )
+            monkeypatch.setattr(
+                klass,
+                "build_streamed",
+                lambda slf: build_patch(slf, orig_build_streamed),  # pyright: ignore[reportUnknownLambdaType,reportUnknownArgumentType]
+            )
 
-        def setup_oneoff(klass: type[BaseRequestBuilder], *, is_async: bool) -> None:
-            orig_send = klass.send  # type: ignore[attr-defined]
+        def setup_sync(klass: type[SyncRequestBuilder]) -> None:
+            orig_build_consumed = klass.build
+            orig_build_streamed = klass.build_streamed
 
-            def send_patch(self: BaseRequestBuilder) -> Any:
-                middleware = mocker._create_middleware() if is_async else mocker._create_sync_middleware()
-                return orig_send(self.with_middleware(middleware))  # type: ignore[attr-defined]
+            def build_patch(
+                self: SyncRequestBuilder,
+                orig: Callable[[SyncRequestBuilder], SyncConsumedRequest | SyncStreamRequest],
+            ) -> SyncConsumedRequest | SyncStreamRequest:
+                return orig(self.with_middleware(mocker._create_sync_middleware()))
+
+            monkeypatch.setattr(
+                klass,
+                "build",
+                lambda slf: build_patch(slf, orig_build_consumed),  # pyright: ignore[reportUnknownLambdaType,reportUnknownArgumentType]
+            )
+            monkeypatch.setattr(
+                klass,
+                "build_streamed",
+                lambda slf: build_patch(slf, orig_build_streamed),  # pyright: ignore[reportUnknownLambdaType,reportUnknownArgumentType]
+            )
+
+        def setup_oneoff_async(klass: type[OneOffRequestBuilder]) -> None:
+            orig_send = klass.send
+
+            def send_patch(self: OneOffRequestBuilder) -> Awaitable[Response]:
+                return orig_send(self.with_middleware(mocker._create_middleware()))
 
             monkeypatch.setattr(klass, "send", send_patch)
 
-        setup(RequestBuilder, is_async=True)
-        setup(SyncRequestBuilder, is_async=False)
-        setup_oneoff(OneOffRequestBuilder, is_async=True)
-        setup_oneoff(SyncOneOffRequestBuilder, is_async=False)
+        def setup_oneoff_sync(klass: type[SyncOneOffRequestBuilder]) -> None:
+            orig_send = klass.send
+
+            def send_patch(self: SyncOneOffRequestBuilder) -> SyncResponse:
+                return orig_send(self.with_middleware(mocker._create_sync_middleware()))
+
+            monkeypatch.setattr(klass, "send", send_patch)
+
+        setup_async(RequestBuilder)
+        setup_sync(SyncRequestBuilder)
+        setup_oneoff_async(OneOffRequestBuilder)
+        setup_oneoff_sync(SyncOneOffRequestBuilder)
 
         return mocker
 
@@ -473,7 +516,8 @@ class ClientMocker:
                 request = request.from_request_and_body(request, RequestBody.from_bytes(b"".join(body)))
 
             for mock in self._mocks:
-                if (response := await mock._handle(request)) is not None:
+                # Call the protected _handle method - this is intentional for internal use
+                if (response := await mock._handle(request)) is not None:  # pyright: ignore[reportPrivateUsage]
                     return response
 
             # No rule matched
@@ -492,7 +536,8 @@ class ClientMocker:
                 request = request.from_request_and_body(request, RequestBody.from_bytes(b"".join(body)))
 
             for mock in self._mocks:
-                if (response := mock._handle_sync(request)) is not None:
+                # Call the protected _handle_sync method - this is intentional for internal use
+                if (response := mock._handle_sync(request)) is not None:  # pyright: ignore[reportPrivateUsage]
                     return response
 
             # No rule matched
@@ -504,9 +549,9 @@ class ClientMocker:
         return mock_middleware
 
 
-if pytest_fixture is not None:
+if "pytest" in globals():
 
-    @pytest_fixture
-    def client_mocker(monkeypatch: MonkeyPatch) -> ClientMocker:
+    @pytest.fixture
+    def client_mocker(monkeypatch: pytest.MonkeyPatch) -> "ClientMocker":
         """Fixture that provides a ClientMocker for mocking HTTP requests in tests."""
         return ClientMocker.create_mocker(monkeypatch)
