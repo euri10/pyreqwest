@@ -82,9 +82,7 @@ class Mock:
         if self._assertion_passes(count, min_count, max_count):
             return
 
-        from pyreqwest.pytest_plugin.internal.assert_message import assert_fail
-
-        assert_fail(self, count=count, min_count=min_count, max_count=max_count)
+        self._assert_fail(count=count, min_count=min_count, max_count=max_count)
 
     def _assertion_passes(
         self,
@@ -238,7 +236,7 @@ class Mock:
             self._matched_requests.append(request)
             return response
 
-        from pyreqwest.pytest_plugin.internal.assert_message import format_unmatched_request_parts
+        from pyreqwest.pytest_plugin.internal.request_formatter import format_unmatched_request_parts
 
         # Memo the reprs as we may consume the request
         self._unmatched_requests_repr_parts.append(
@@ -346,6 +344,94 @@ class Mock:
         res = self._custom_handler(request)
         assert res is None or isinstance(res, SyncResponse)
         return res
+
+    def _assert_fail(
+        self,
+        *,
+        count: int | None = None,
+        min_count: int | None = None,
+        max_count: int | None = None,
+    ) -> None:
+        """Internal method to raise assertion error with formatted message."""
+        from pyreqwest.pytest_plugin.internal.assert_eq import assert_eq
+
+        msg = self._format_counts_assert_message(count, min_count, max_count)
+
+        if self._unmatched_requests_repr_parts:
+            not_matched = {*self._unmatched_requests_repr_parts[-1].keys()}
+            assert not_matched
+
+            msg = f"{msg}. Diff with last unmatched request:"
+            assert_eq(self._unmatched_requests_repr_parts[-1], self._format_mock_matchers_parts(not_matched), msg)
+        else:
+            raise AssertionError(msg)
+
+    def _format_counts_assert_message(
+        self,
+        count: int | None = None,
+        min_count: int | None = None,
+        max_count: int | None = None,
+    ) -> str:
+        """Format the assertion message for call count mismatches."""
+        if count is not None:
+            expected_desc = f"exactly {count}"
+        else:
+            expectations = []
+            if min_count is not None:
+                expectations.append(f"at least {min_count}")
+            if max_count is not None:
+                expectations.append(f"at most {max_count}")
+            expected_desc = " and ".join(expectations)
+
+        method_path = " ".join(
+            [
+                self._method_matcher.matcher_repr if self._method_matcher is not None else "*",
+                self._path_matcher.matcher_repr if self._path_matcher is not None else "*",
+            ],
+        )
+        return f'Expected {expected_desc} request(s) but received {len(self._matched_requests)} to: "{method_path}"'
+
+    def _format_mock_matchers_parts(self, unmatched: set[str] | None) -> dict[str, str | None]:
+        """Format mock matcher parts for display in error messages."""
+        parts: dict[str, str | None] = {
+            "method": self._method_matcher.matcher_repr if self._method_matcher is not None else None,
+            "path": self._path_matcher.matcher_repr if self._path_matcher is not None else None,
+            "query": self._format_query_matcher() if self._query_matcher is not None else None,
+            "headers": self._format_header_matchers() if self._header_matchers is not None else None,
+            "body": self._format_body_matcher() if self._body_matcher is not None else None,
+            "custom": f"Custom matcher: {self._custom_matcher.__name__}" if self._custom_matcher is not None else None,
+            "handler": (
+                f"Custom handler: {self._custom_handler.__name__}" if self._custom_handler is not None else None
+            ),
+        }
+        return {k: v for k, v in parts.items() if unmatched is None or k in unmatched}
+
+    def _format_query_matcher(self) -> str:
+        """Format query matcher for display."""
+        assert self._query_matcher is not None
+        if isinstance(self._query_matcher, dict):
+            query_parts = [f"{k}={v.matcher_repr}" for k, v in self._query_matcher.items()]
+            return ", ".join(query_parts)
+        return self._query_matcher.matcher_repr
+
+    def _format_header_matchers(self) -> str:
+        """Format header matchers for display."""
+        header_parts = [f"{name.title()}: {value.matcher_repr}" for name, value in self._header_matchers.items()]
+        return ", ".join(header_parts)
+
+    def _format_body_matcher(self) -> str:
+        """Format body matcher for display."""
+        assert self._body_matcher is not None
+        matcher, kind = self._body_matcher
+        if kind == "json":
+            try:
+                return json.dumps(matcher.matcher, separators=(",", ":"))
+            except (TypeError, ValueError):
+                return matcher.matcher_repr
+        elif kind == "content":
+            return matcher.matcher_repr
+        else:
+            assert_never(kind)
 
     @override
     def __repr__(self) -> str:

@@ -1,14 +1,15 @@
 import json
-from typing import Literal, assert_never
+from typing import TYPE_CHECKING, Literal, assert_never
 
-from pyreqwest.pytest_plugin import Mock
 from pyreqwest.pytest_plugin.internal.assert_eq import assert_eq
 from pyreqwest.pytest_plugin.internal.matcher import InternalMatcher
-from pyreqwest.request import Request
+
+if TYPE_CHECKING:
+    from pyreqwest.pytest_plugin.mock import Mock
 
 
 def assert_fail(
-    mock: Mock,
+    mock: "Mock",
     *,
     count: int | None = None,
     min_count: int | None = None,
@@ -27,7 +28,7 @@ def assert_fail(
 
 
 def _format_counts_assert_message(
-    mock: Mock,
+    mock: "Mock",
     count: int | None = None,
     min_count: int | None = None,
     max_count: int | None = None,
@@ -51,42 +52,7 @@ def _format_counts_assert_message(
     return f'Expected {expected_desc} request(s) but received {len(mock._matched_requests)} to: "{method_path}"'
 
 
-def format_unmatched_request_parts(request: Request, unmatched: set[str]) -> dict[str, str | None]:
-    req_parts: dict[str, str | None] = {
-        "method": request.method,
-        "url": str(request.url),
-        "path": request.url.path,
-        "query": None,
-        "headers": None,
-        "body": None,
-    }
-
-    if request.url.query_pairs:
-        query_parts = [f"{k}={v}" for k, v in request.url.query_pairs]
-        req_parts["query"] = ", ".join(query_parts)
-
-    if request.headers:
-        header_parts = [f"{name.title()}: {value}" for name, value in request.headers.items()]
-        req_parts["headers"] = ", ".join(header_parts)
-
-    if request.body:
-        if (bytes_body := request.body.copy_bytes()) is not None:
-            req_parts["body"] = bytes_body.to_bytes().decode("utf8", errors="replace")
-        elif (stream_body := request.body.get_stream()) is not None:
-            req_parts["body"] = repr(stream_body)
-        else:
-            req_parts["body"] = repr(request.body)
-
-    fmt_parts: dict[str, str | None] = {
-        "custom": f"No match with request {req_parts}",
-        "handler": f"No match with request {req_parts}",
-    }
-    fmt_parts = {**req_parts, **fmt_parts}
-
-    return {k: v for k, v in fmt_parts.items() if k in unmatched}
-
-
-def _format_mock_matchers_parts(mock: Mock, unmatched: set[str] | None) -> dict[str, str | None]:
+def _format_mock_matchers_parts(mock: "Mock", unmatched: set[str] | None) -> dict[str, str | None]:
     parts: dict[str, str | None] = {
         "method": mock._method_matcher.matcher_repr if mock._method_matcher is not None else None,
         "path": mock._path_matcher.matcher_repr if mock._path_matcher is not None else None,
