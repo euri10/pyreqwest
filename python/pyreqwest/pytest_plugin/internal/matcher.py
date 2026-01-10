@@ -2,22 +2,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from re import Pattern
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    try:
-        from dirty_equals import DirtyEquals as _DirtyEqualsBase
-    except ImportError:
-        _DirtyEqualsBase = None  # type: ignore[assignment,misc]
-else:
-    try:
-        from dirty_equals import DirtyEquals as _DirtyEqualsBase
-    except ImportError:
-        _DirtyEqualsBase = None  # type: ignore[assignment,misc]
 
 try:
     from typing import override  # Python 3.12+
+
+    from dirty_equals import DirtyEquals as _DirtyEqualsBase
 except ImportError:
+    _DirtyEqualsBase = None  # type: ignore[assignment,misc]
     from typing_extensions import override
 
 
