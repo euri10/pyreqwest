@@ -334,7 +334,7 @@ class HeaderMap(MutableMapping[str, str]):
     def pop(self, key: str) -> str:
         """Remove & return FIRST value for key. With default returns default instead of KeyError."""
     @overload
-    def pop(self, key: str, default: _T = ...) -> str | _T:
+    def pop(self, key: str, default: str | _T) -> str | _T:
         """Remove & return FIRST value for key. With default returns default instead of KeyError."""
 
     def popitem(self) -> tuple[str, str]:
