@@ -20,6 +20,12 @@ pub struct ResponseBuilder {
     extensions: Option<Extensions>,
 }
 
+impl Default for ResponseBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[pymethods]
 impl ResponseBuilder {
     #[new]
