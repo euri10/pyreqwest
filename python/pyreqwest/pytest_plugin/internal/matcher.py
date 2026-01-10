@@ -1,21 +1,36 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
 from re import Pattern
-from typing import Any
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    try:
+        from dirty_equals import DirtyEquals as _DirtyEqualsBase
+    except ImportError:
+        _DirtyEqualsBase = None  # type: ignore[assignment,misc]
+else:
+    try:
+        from dirty_equals import DirtyEquals as _DirtyEqualsBase
+    except ImportError:
+        _DirtyEqualsBase = None  # type: ignore[assignment,misc]
 
 try:
-    from dirty_equals import DirtyEquals as _DirtyEqualsBase
+    from typing import override  # Python 3.12+
 except ImportError:
-    _DirtyEqualsBase = None  # type: ignore[assignment,misc]
+    from typing_extensions import override
 
 
 @dataclass
 class InternalMatcher:
-    matcher: Any
+    matcher: str | Pattern[str] | object
     matcher_repr: str = ""
 
-    def matches(self, value: Any) -> bool:
+    def matches(self, value: object) -> bool:
         if isinstance(self.matcher, Pattern):
-            return self.matcher.search(str(value)) is not None
+            # Convert value to string for pattern matching
+            value_str = str(value)
+            return self.matcher.search(value_str) is not None
         return bool(value == self.matcher)
 
     def __post_init__(self) -> None:
@@ -30,5 +45,6 @@ class InternalMatcher:
         else:
             self.matcher_repr = repr(self.matcher)
 
+    @override
     def __repr__(self) -> str:
         return f"Matcher({self.matcher_repr})"
