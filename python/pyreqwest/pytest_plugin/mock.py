@@ -4,7 +4,7 @@ import json
 from collections.abc import AsyncIterable, Awaitable, Callable, Iterable
 from functools import cached_property
 from re import Pattern
-from typing import TYPE_CHECKING, Any, Literal, Self, TypeVar, assert_never, override
+from typing import Any, Literal, Self, TypeVar, assert_never, override
 
 import pytest
 
@@ -35,15 +35,13 @@ from pyreqwest.request import (
 from pyreqwest.response import BaseResponse, Response, ResponseBuilder, SyncResponse
 from pyreqwest.types import HeadersType
 
-if TYPE_CHECKING:
-    MonkeyPatch = pytest.MonkeyPatch
-else:
-    try:
-        pytest_fixture = pytest.fixture
-        MonkeyPatch = pytest.MonkeyPatch
-    except ImportError:
-        pytest_fixture = None  # type: ignore[assignment]
-        MonkeyPatch = Any  # type: ignore[assignment,misc]
+try:
+    import pytest
+
+    pytest_fixture = pytest.fixture
+except ImportError:
+    pytest_fixture = None  # type: ignore[assignment]
+    MonkeyPatch = Any
 
 _R = TypeVar("_R", bound=BaseResponse)
 
@@ -635,9 +633,9 @@ class ClientMocker:
         return mock_middleware
 
 
-if "pytest" in globals():
+if pytest_fixture is not None:
 
-    @pytest.fixture
-    def client_mocker(monkeypatch: pytest.MonkeyPatch) -> "ClientMocker":
+    @pytest_fixture
+    def client_mocker(monkeypatch: MonkeyPatch) -> ClientMocker:
         """Fixture that provides a ClientMocker for mocking HTTP requests in tests."""
         return ClientMocker.create_mocker(monkeypatch)
