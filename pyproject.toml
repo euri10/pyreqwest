@@ -49,6 +49,7 @@ dev = [
     "mypy==1.19.0",
     "packaging==25.0",
     "pydantic==2.12.5",
+    "basedpyright==1.37.1",
     # Compatibility checks with other libraries
     "dirty-equals==0.11",
     "yarl==1.22.0",
@@ -60,7 +61,6 @@ dev = [
     "types-docker==7.1.0.20251202",
     # Documentation
     "pdoc==16.0.0",
-    "basedpyright>=1.37.1",
 ]
 bench = [
     "aiohttp==3.13.2",
