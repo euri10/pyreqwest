@@ -1907,7 +1907,7 @@ bench = [
 ]
 dev = [
     { name = "asgi-types", specifier = "==0.1.0" },
-    { name = "basedpyright", specifier = ">=1.37.1" },
+    { name = "basedpyright", specifier = "==1.37.1" },
     { name = "dirty-equals", specifier = "==0.11" },
     { name = "docker", specifier = "==7.1.0" },
     { name = "granian", specifier = "==2.6.0" },
