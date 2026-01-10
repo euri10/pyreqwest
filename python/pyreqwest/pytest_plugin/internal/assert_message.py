@@ -1,28 +1,8 @@
 import json
 from typing import Literal, assert_never
 
-from pyreqwest.pytest_plugin.internal.assert_eq import assert_eq
 from pyreqwest.pytest_plugin.internal.matcher import InternalMatcher
 from pyreqwest.pytest_plugin.mock import Mock
-
-
-def assert_fail(
-    mock: Mock,
-    *,
-    count: int | None = None,
-    min_count: int | None = None,
-    max_count: int | None = None,
-) -> None:
-    msg = _format_counts_assert_message(mock, count, min_count, max_count)
-
-    if mock._unmatched_requests_repr_parts:
-        not_matched = {*mock._unmatched_requests_repr_parts[-1].keys()}
-        assert not_matched
-
-        msg = f"{msg}. Diff with last unmatched request:"
-        assert_eq(mock._unmatched_requests_repr_parts[-1], _format_mock_matchers_parts(mock, not_matched), msg)
-    else:
-        raise AssertionError(msg)
 
 
 def _format_counts_assert_message(
