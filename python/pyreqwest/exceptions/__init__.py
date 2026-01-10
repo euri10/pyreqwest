@@ -83,7 +83,7 @@ class BodyDecodeError(DecodeError):
     """
 
 
-class JSONDecodeError(BodyDecodeError, JSONDecodeError_):
+class JSONDecodeError(BodyDecodeError, JSONDecodeError_):  # pyright: ignore[reportUnsafeMultipleInheritance]
     """Error while decoding the response body as JSON.
 
     This corresponds to Python's built-in `json.JSONDecodeError`. With the difference that `pos` and `colno` are byte
@@ -105,7 +105,7 @@ class TransportError(RequestError[CauseErrorDetails]):
     """
 
 
-class RequestTimeoutError(TransportError, TimeoutError):
+class RequestTimeoutError(TransportError, TimeoutError):  # pyright: ignore[reportUnsafeMultipleInheritance]
     """Error due to a timeout.
 
     This indicates that the timeout configured for the request was reached.
@@ -177,7 +177,7 @@ class ClientClosedError(RequestError[CauseErrorDetails]):
     """
 
 
-class BuilderError(DetailedPyreqwestError[CauseErrorDetails], ValueError):
+class BuilderError(DetailedPyreqwestError[CauseErrorDetails], ValueError):  # pyright: ignore[reportUnsafeMultipleInheritance]
     """Error while building a request.
 
     Cause details may be available in `details["causes"]`.
