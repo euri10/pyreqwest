@@ -55,9 +55,9 @@ class Mock:
         self, method: MethodMatcher | None = None, *, path: PathMatcher | None = None, url: UrlMatcher | None = None
     ) -> None:
         """Do not use directly. Instead, use ClientMocker.mock()."""
-        self._method_matcher: InternalMatcher | None = InternalMatcher(method) if method is not None else None
-        self._path_matcher: InternalMatcher | None = InternalMatcher(path) if path is not None else None
-        self._url_matcher: InternalMatcher | None = InternalMatcher(url) if url is not None else None
+        self._method_matcher = InternalMatcher(method) if method is not None else None
+        self._path_matcher = InternalMatcher(path) if path is not None else None
+        self._url_matcher = InternalMatcher(url) if url is not None else None
         self._query_matcher: dict[str, InternalMatcher] | InternalMatcher | None = None
         self._header_matchers: dict[str, InternalMatcher] = {}
         self._body_matcher: tuple[InternalMatcher, Literal["content", "json"]] | None = None
@@ -66,7 +66,7 @@ class Mock:
 
         self._matched_requests: list[Request] = []
         self._unmatched_requests_repr_parts: list[dict[str, str | None]] = []
-        self._using_response_builder: bool = False
+        self._using_response_builder = False
 
     def assert_called(
         self,
