@@ -1,15 +1,13 @@
 import json
-from typing import TYPE_CHECKING, Literal, assert_never
+from typing import Literal, assert_never
 
 from pyreqwest.pytest_plugin.internal.assert_eq import assert_eq
 from pyreqwest.pytest_plugin.internal.matcher import InternalMatcher
-
-if TYPE_CHECKING:
-    from pyreqwest.pytest_plugin.mock import Mock
+from pyreqwest.pytest_plugin.mock import Mock
 
 
 def assert_fail(
-    mock: "Mock",
+    mock: Mock,
     *,
     count: int | None = None,
     min_count: int | None = None,
@@ -28,7 +26,7 @@ def assert_fail(
 
 
 def _format_counts_assert_message(
-    mock: "Mock",
+    mock: Mock,
     count: int | None = None,
     min_count: int | None = None,
     max_count: int | None = None,
@@ -52,7 +50,7 @@ def _format_counts_assert_message(
     return f'Expected {expected_desc} request(s) but received {len(mock._matched_requests)} to: "{method_path}"'
 
 
-def _format_mock_matchers_parts(mock: "Mock", unmatched: set[str] | None) -> dict[str, str | None]:
+def _format_mock_matchers_parts(mock: Mock, unmatched: set[str] | None) -> dict[str, str | None]:
     parts: dict[str, str | None] = {
         "method": mock._method_matcher.matcher_repr if mock._method_matcher is not None else None,
         "path": mock._path_matcher.matcher_repr if mock._path_matcher is not None else None,
