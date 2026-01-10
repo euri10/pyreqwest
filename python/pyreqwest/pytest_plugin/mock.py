@@ -289,8 +289,7 @@ class Mock:
         matcher, kind = self._body_matcher
         if kind == "json":
             try:
-                body_json = json.loads(body_bytes)  # pyright: ignore[reportAny]
-                return matcher.matches(body_json)  # pyright: ignore[reportAny]
+                return matcher.matches(json.loads(body_bytes))  # pyright: ignore[reportAny]
             except json.JSONDecodeError:
                 return False
         elif kind == "content":
@@ -434,7 +433,7 @@ class Mock:
     @override
     def __repr__(self) -> str:
         """Return a string representation of the mock for debugging purposes."""
-        parts: list[str] = []
+        parts = []
         if self._method_matcher is not None:
             parts.append(f"method={self._method_matcher!r}")
         if self._url_matcher is not None:
@@ -463,7 +462,7 @@ class ClientMocker:
     def __init__(self) -> None:
         """@private"""
         self._mocks: list[Mock] = []
-        self._strict: bool = False
+        self._strict = False
 
     @staticmethod
     def create_mocker(monkeypatch: MonkeyPatch) -> "ClientMocker":
