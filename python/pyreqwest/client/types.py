@@ -21,14 +21,17 @@ class JsonLoadsContext(Protocol):
     @property
     def body_reader(self) -> ResponseBodyReader:
         """The body reader to read the JSON data from."""
+        ...
 
     @property
     def headers(self) -> HeaderMap:
         """The response headers."""
+        ...
 
     @property
     def extensions(self) -> dict[str, Any]:
         """The extensions associated with the request."""
+        ...
 
 
 class SyncJsonLoadsContext(Protocol):
@@ -37,14 +40,17 @@ class SyncJsonLoadsContext(Protocol):
     @property
     def body_reader(self) -> SyncResponseBodyReader:
         """The body reader to read the JSON data from."""
+        ...
 
     @property
     def headers(self) -> HeaderMap:
         """The response headers."""
+        ...
 
     @property
     def extensions(self) -> dict[str, Any]:
         """The extensions associated with the request."""
+        ...
 
 
 JsonDumps = Callable[[JsonDumpsContext], bytes | bytearray | memoryview]
