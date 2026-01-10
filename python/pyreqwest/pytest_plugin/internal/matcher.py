@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from re import Pattern
 
 try:
-    from typing import override  # Python 3.12+
+    from typing import override
 
     from dirty_equals import DirtyEquals as _DirtyEqualsBase
 except ImportError:
@@ -17,9 +17,7 @@ class InternalMatcher:
 
     def matches(self, value: object) -> bool:
         if isinstance(self.matcher, Pattern):
-            # Convert value to string for pattern matching
-            value_str = str(value)
-            return self.matcher.search(value_str) is not None
+            return self.matcher.search(str(value)) is not None
         return bool(value == self.matcher)
 
     def __post_init__(self) -> None:
